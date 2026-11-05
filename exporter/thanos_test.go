@@ -162,8 +162,10 @@ func TestThanosClientQuery(t *testing.T) {
 func TestThanosClientErrors(t *testing.T) {
 	for name, h := range map[string]http.HandlerFunc{
 		"http 403": func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "Forbidden", http.StatusForbidden) },
-		"status":   func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte(`{"status":"error","error":"kapot"}`)) },
-		"json":     func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte(`<html>`)) },
+		"status": func(w http.ResponseWriter, _ *http.Request) {
+			_, _ = w.Write([]byte(`{"status":"error","error":"kapot"}`))
+		},
+		"json": func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte(`<html>`)) },
 	} {
 		t.Run(name, func(t *testing.T) {
 			srv := httptest.NewServer(h)
