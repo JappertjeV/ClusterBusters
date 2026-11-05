@@ -116,7 +116,7 @@ Regels:
 | `olm` | `operators.coreos.com/v1alpha1 clusterserviceversions` | sla `status.reason=Copied` over; phase≠Succeeded → blocker; `olm.maxOpenShiftVersion` (in annotation `operatorframework.io/properties`) < doel-minor → blocker |
 | `nodes` | `v1 nodes`, `machineconfiguration.openshift.io/v1 machineconfigpools` | Node Ready≠True → blocker; Memory/Disk/PIDPressure of unschedulable → warning; MCP Degraded → blocker; MCP paused of Updated≠True → warning |
 | `pdb` | `policy/v1 poddisruptionbudgets` | sla openshift-*/kube-* over (tenzij INCLUDE_PLATFORM); expectedPods=0 → warning; disruptionsAllowed=0 → blocker ("blokkeert node-drain, zet maxUnavailable: 1") |
-| `deprecated_apis` | `apiserver.openshift.io/v1 apirequestcounts` | `status.removedInRelease` gezet en `requestCount>0` → blocker als removed ≤ doel (OCP 4.N ≈ k8s 1.(N+13)), anders warning; toon de topgebruikers uit `status.last24h[].byNode[].byUser[]` |
+| `deprecated_apis` | `apiserver.openshift.io/v1 apirequestcounts`, plus `apiserver_requested_deprecated_apis` via Thanos omdat APIRequestCount op CRC leeg is | `status.removedInRelease` gezet en `requestCount>0` → blocker als removed ≤ doel (OCP 4.N ≈ k8s 1.(N+13)), anders warning; toon de topgebruikers uit `status.last24h[].byNode[].byUser[]` |
 | `unsupported` | `operator.openshift.io/v1` KubeAPIServer, Etcd, … (naam `cluster`); `v1 pods` | `spec.unsupportedConfigOverrides` gezet → blocker; losse pod zonder ownerReferences (Running) → warning |
 
 ### Deploy-onderdelen voor de scanner (in `base/`, behalve RBAC)

@@ -354,10 +354,36 @@ func checkPDBs(ctx context.Context, s *Scanner) ([]Finding, error) {
 
 // ---------------------------------------------------------------- deprecated_apis
 
+const (
+	// Een gauge die op 1 staat zodra de API is aangeroepen sinds de start van die API-server.
+	deprecatedAPIQuery = `max by (group, version, resource, removed_release) (apiserver_requested_deprecated_apis)`
+	apiserverUpQuery   = `up{job="apiserver"} == 1`
+)
+
+// checkDeprecatedAPIs gebruikt twee bronnen. APIRequestCount noemt ook de gebruikers, maar was op
+// crc03 helemaal leeg, zodat de check op OK stond terwijl het platform 6 verouderde API's zag.
+// De metric vangt dat op. Een bron die faalt, laat de check falen in plaats van 0 te melden.
 func checkDeprecatedAPIs(ctx context.Context, s *Scanner) ([]Finding, error) {
+	var errs []error
+	out, seen, err := deprecatedFromRequestCounts(ctx, s)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("apirequestcounts: %w", err))
+	}
+	if s.metrics != nil {
+		more, err := deprecatedFromMetrics(ctx, s, seen)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("thanos: %w", err))
+		}
+		out = append(out, more...)
+	}
+	return out, errors.Join(errs...)
+}
+
+func deprecatedFromRequestCounts(ctx context.Context, s *Scanner) ([]Finding, map[string]bool, error) {
+	seen := map[string]bool{}
 	list, err := s.client.Resource(gvrAPIRequestCount).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return nil, err
+		return nil, seen, err
 	}
 	var out []Finding
 	for _, arc := range list.Items {
@@ -366,25 +392,85 @@ func checkDeprecatedAPIs(ctx context.Context, s *Scanner) ([]Finding, error) {
 		if removed == "" || count == 0 {
 			continue
 		}
-		kube, err := parseMinor(removed)
+		release, err := parseMinor(removed)
 		if err != nil {
 			continue
 		}
-		ocp := kubeToOCP(kube)
-		sev := Warning
-		// Onbekend doel: voorzichtig zijn en als blocker melden.
-		if s.target == nil || !s.target.Less(ocp) {
-			sev = Blocker
-		}
+		seen[arc.GetName()] = true
+		ocp := removalInOCP(release)
 		fix := "Migreer naar een nieuwere API-versie voordat je naar OpenShift " + ocp.String() + " gaat."
 		if users := topUsers(arc.Object, 3); len(users) > 0 {
 			fix += " Grootste gebruikers: " + strings.Join(users, ", ") + "."
 		}
-		out = append(out, Finding{Severity: sev, Resource: "APIRequestCount " + arc.GetName(),
-			Title: fmt.Sprintf("Deprecated API in gebruik, verdwijnt in Kubernetes %s (OpenShift %s)", kube, ocp),
+		out = append(out, Finding{Severity: removalSeverity(s, ocp), Resource: "APIRequestCount " + arc.GetName(),
+			Title: "Deprecated API in gebruik, verdwijnt in " + removalText(release),
 			Fix:   clip(fix)})
 	}
+	return out, seen, nil
+}
+
+func deprecatedFromMetrics(ctx context.Context, s *Scanner, seen map[string]bool) ([]Finding, error) {
+	// Zonder scrape van de API-server is een leeg antwoord geen bewijs dat er niets speelt.
+	up, err := s.metrics.Query(ctx, apiserverUpQuery)
+	if err != nil {
+		return nil, err
+	}
+	if len(up) == 0 {
+		return nil, errors.New("Prometheus heeft geen data van de API-server, dus er is geen oordeel mogelijk")
+	}
+	series, err := s.metrics.Query(ctx, deprecatedAPIQuery)
+	if err != nil {
+		return nil, err
+	}
+	const findUsers = " Deze bron noemt geen gebruikers: zoek ze in de audit-logs van de API-server."
+	var out []Finding
+	for _, m := range series {
+		// Zelfde opbouw als de naam van een APIRequestCount: resource.versie.groep, zonder groep bij core.
+		name := m["resource"] + "." + m["version"]
+		if m["group"] != "" {
+			name += "." + m["group"]
+		}
+		if seen[name] {
+			continue
+		}
+		seen[name] = true
+		f := Finding{Severity: Info, Resource: "API " + name,
+			Title: "Deprecated API in gebruik, nog geen verwijderversie bekend",
+			Fix:   clip("Plan de migratie naar een nieuwere API-versie." + findUsers)}
+		if release, err := parseMinor(m["removed_release"]); err == nil {
+			ocp := removalInOCP(release)
+			f.Severity = removalSeverity(s, ocp)
+			f.Title = "Deprecated API in gebruik, verdwijnt in " + removalText(release)
+			f.Fix = clip("Migreer naar een nieuwere API-versie voordat je naar OpenShift " + ocp.String() + " gaat." + findUsers)
+		}
+		out = append(out, f)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Resource < out[j].Resource })
 	return out, nil
+}
+
+// removalInOCP: alleen 1.x is een Kubernetes-versie. Op crc03 staat bij DeploymentConfig "6.0",
+// een OpenShift-release; kubeToOCP zou daar 4.-13 van maken en dus een onterechte blocker.
+func removalInOCP(release minorVersion) minorVersion {
+	if release.Major == 1 {
+		return kubeToOCP(release)
+	}
+	return release
+}
+
+func removalText(release minorVersion) string {
+	if release.Major == 1 {
+		return fmt.Sprintf("Kubernetes %s (OpenShift %s)", release, kubeToOCP(release))
+	}
+	return "OpenShift " + release.String()
+}
+
+func removalSeverity(s *Scanner, ocp minorVersion) string {
+	// Onbekend doel: voorzichtig zijn en als blocker melden.
+	if s.target == nil || !s.target.Less(ocp) {
+		return Blocker
+	}
+	return Warning
 }
 
 // topUsers telt status.last24h[].byNode[].byUser[] op per gebruiker.
