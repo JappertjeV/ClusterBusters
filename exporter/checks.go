@@ -24,6 +24,8 @@ var (
 	gvrAPIRequestCount = schema.GroupVersionResource{Group: "apiserver.openshift.io", Version: "v1", Resource: "apirequestcounts"}
 	gvrConfigMap       = schema.GroupVersionResource{Version: "v1", Resource: "configmaps"}
 	gvrPod             = schema.GroupVersionResource{Version: "v1", Resource: "pods"}
+	gvrSubscription    = schema.GroupVersionResource{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "subscriptions"}
+	gvrInstallPlan     = schema.GroupVersionResource{Group: "operators.coreos.com", Version: "v1alpha1", Resource: "installplans"}
 )
 
 // Operator-configuraties (naam "cluster") die spec.unsupportedConfigOverrides kennen.
@@ -105,6 +107,12 @@ func checkClusterVersion(ctx context.Context, s *Scanner) ([]Finding, error) {
 		out = append(out, Finding{Severity: Warning, Resource: res,
 			Title: withMessage("Er loopt al een update", c),
 			Fix:   "Wacht tot de lopende update klaar is voordat je een nieuwe start."})
+	}
+	// Info en geen warning: op een afgeschermd cluster staat dit altijd op False.
+	if c := conds["RetrievedUpdates"]; c.Status == "False" {
+		out = append(out, Finding{Severity: Info, Resource: res,
+			Title: withMessage("Cluster kan geen beschikbare updates ophalen", c),
+			Fix:   "Stel een update-channel in (`oc adm upgrade channel stable-4.N`) en controleer of de update-service bereikbaar is. Zonder dit ziet het cluster geen updates."})
 	}
 
 	// Bekende risico's van beschikbare updates.
@@ -230,6 +238,71 @@ func checkOLM(ctx context.Context, s *Scanner) ([]Finding, error) {
 				Title: fmt.Sprintf("Operator ondersteunt maximaal OpenShift %s, doel is %s", maxV, s.target),
 				Fix:   "Update deze Operator naar een versie die " + s.target.String() + " ondersteunt (wissel zo nodig van channel), of verwijder hem."})
 		}
+	}
+
+	// Operator-updates die vastzitten. Een fout hier laat de check falen, maar wat we over de
+	// CSV's vonden blijft staan.
+	var errs []error
+	subs, err := subscriptionFindings(ctx, s)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("subscriptions: %w", err))
+	}
+	plans, err := installPlanFindings(ctx, s)
+	if err != nil {
+		errs = append(errs, fmt.Errorf("installplans: %w", err))
+	}
+	out = append(append(out, subs...), plans...)
+	return out, errors.Join(errs...)
+}
+
+// subscriptionFindings: OLM kan voor deze Operator geen (nieuwe) versie vinden of installeren.
+func subscriptionFindings(ctx context.Context, s *Scanner) ([]Finding, error) {
+	list, err := s.client.Resource(gvrSubscription).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var out []Finding
+	for _, sub := range list.Items {
+		ns, name := sub.GetNamespace(), sub.GetName()
+		res := fmt.Sprintf("Subscription %s/%s", ns, name)
+		conds := conditions(sub.Object)
+		if c := conds["ResolutionFailed"]; c.Status == "True" {
+			out = append(out, Finding{Severity: Warning, Resource: res,
+				Title: withMessage("Operator-update kan niet worden opgelost (ResolutionFailed)", c),
+				Fix:   fmt.Sprintf("Controleer package, channel en CatalogSource van deze Subscription (`oc -n %s get sub %s -o yaml`). Zolang dit faalt krijgt de Operator geen updates.", ns, name)})
+		}
+		if c := conds["CatalogSourcesUnhealthy"]; c.Status == "True" {
+			out = append(out, Finding{Severity: Warning, Resource: res,
+				Title: withMessage("CatalogSource van deze Operator is niet gezond", c),
+				Fix:   "Bekijk `oc get catalogsource -n openshift-marketplace` en de pods daar; zonder catalogus komen er geen Operator-updates binnen."})
+		}
+		if c := conds["InstallPlanFailed"]; c.Status == "True" {
+			out = append(out, Finding{Severity: Blocker, Resource: res,
+				Title: withMessage("Installatie van de Operator-update is mislukt", c),
+				Fix:   fmt.Sprintf("Bekijk de InstallPlan in namespace %s (`oc -n %s get installplan`) en verwijder of herstel hem.", ns, ns)})
+		}
+	}
+	return out, nil
+}
+
+// installPlanFindings: een Operator-update staat klaar maar wacht op handmatige goedkeuring.
+func installPlanFindings(ctx context.Context, s *Scanner) ([]Finding, error) {
+	list, err := s.client.Resource(gvrInstallPlan).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	var out []Finding
+	for _, ip := range list.Items {
+		phase, _, _ := unstructured.NestedString(ip.Object, "status", "phase")
+		approved, _, _ := unstructured.NestedBool(ip.Object, "spec", "approved")
+		if phase != "RequiresApproval" || approved {
+			continue
+		}
+		ns, name := ip.GetNamespace(), ip.GetName()
+		csvs, _, _ := unstructured.NestedStringSlice(ip.Object, "spec", "clusterServiceVersionNames")
+		out = append(out, Finding{Severity: Warning, Resource: fmt.Sprintf("InstallPlan %s/%s", ns, name),
+			Title: clip("Operator-update wacht op handmatige goedkeuring: " + strings.Join(csvs, ", ")),
+			Fix:   clip(fmt.Sprintf(`Werk Operators bij vóór de cluster-upgrade. Keur goed in de console (Operators → Installed Operators) of met: oc -n %s patch installplan %s --type merge -p "{\"spec\":{\"approved\":true}}"`, ns, name))})
 	}
 	return out, nil
 }

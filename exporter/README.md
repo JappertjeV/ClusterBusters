@@ -17,9 +17,9 @@ alerts staan in `base/exporter-*.yaml`.
 
 | check | Leest | Blocker | Warning |
 |---|---|---|---|
-| `clusterversion` | ClusterVersion, admin-gates/admin-acks | Failing, Upgradeable=False | Progressing, onbevestigde admin-gate (bekende update-risico's: info) |
+| `clusterversion` | ClusterVersion, admin-gates/admin-acks | Failing, Upgradeable=False | Progressing, onbevestigde admin-gate (info: bekende update-risico's, `RetrievedUpdates=False`) |
 | `operators` | ClusterOperators | niet Available, Degraded, Upgradeable=False | Progressing |
-| `olm` | ClusterServiceVersions | phase ≠ Succeeded, `olm.maxOpenShiftVersion` < doel | |
+| `olm` | ClusterServiceVersions, Subscriptions, InstallPlans | phase ≠ Succeeded, `olm.maxOpenShiftVersion` < doel, `InstallPlanFailed` | Subscription `ResolutionFailed` of `CatalogSourcesUnhealthy`, InstallPlan wacht op goedkeuring |
 | `nodes` | Nodes, MachineConfigPools | Node niet Ready, MCP Degraded | Pressure, cordoned, MCP paused of niet Updated |
 | `pdb` | PodDisruptionBudgets | 0 disruptions allowed | PDB matcht geen pods |
 | `deprecated_apis` | APIRequestCounts, `apiserver_requested_deprecated_apis` via Thanos | gebruikte API verdwijnt in of vóór de doelversie | gebruikte API verdwijnt later (geen verwijderversie bekend: info) |

@@ -1,0 +1,22 @@
+# Status voor de nep-ClusterOperator. Zie testcases/nep-clusteroperator.yaml.
+status:
+  conditions:
+    - type: Available
+      status: "True"
+      reason: AsExpected
+      message: Nep-operator van de ClusterBusters-testomgeving
+      lastTransitionTime: "2026-11-05T00:00:00Z"
+    - type: Degraded
+      status: "True"
+      reason: TestOmgeving
+      message: Bewust kapot voor de demo, verwijder met oc delete clusteroperator clusterbusters-nep
+      lastTransitionTime: "2026-11-05T00:00:00Z"
+    - type: Progressing
+      status: "False"
+      reason: AsExpected
+      lastTransitionTime: "2026-11-05T00:00:00Z"
+    - type: Upgradeable
+      status: "False"
+      reason: TestOmgeving
+      message: Bewust niet-upgradeable voor de demo
+      lastTransitionTime: "2026-11-05T00:00:00Z"

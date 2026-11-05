@@ -1,0 +1,347 @@
+# Testomgeving: een mix van goede en kapotte onderdelen, zodat het dashboard laat zien dat de
+# exporter het verschil ziet. Staat buiten base/, zodat Argo CD dit niet beheert.
+# Zie testcases/README.md voor wat je per onderdeel op het dashboard hoort te zien.
+#
+#   oc apply -f testcases/testomgeving.yaml
+#   oc delete -f testcases/testomgeving.yaml
+#
+# Drie namespaces, omdat OLM alle Subscriptions in een namespace samen oplost: de kapotte
+# Subscription zou anders ook de wachtende update tegenhouden.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clusterbusters-test
+  labels:
+    clusterbusters/test: "true"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clusterbusters-test-olm-kapot
+  labels:
+    clusterbusters/test: "true"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clusterbusters-test-olm-wacht
+  labels:
+    clusterbusters/test: "true"
+
+# ============================================================================ GOED
+# Deze onderdelen horen GEEN bevinding op te leveren.
+---
+# Goed: 2 replicas met maxUnavailable 1, dus een drain kan altijd 1 pod verplaatsen.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goed-web
+  namespace: clusterbusters-test
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: goed-web}
+  template:
+    metadata:
+      labels: {app: goed-web}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: app
+          image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+          command: ["sleep", "infinity"]
+          resources:
+            requests: {cpu: 5m, memory: 16Mi}
+            limits: {memory: 32Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: goed-web
+  namespace: clusterbusters-test
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels: {app: goed-web}
+---
+# Goed: een echte HTTP-API met 2 replicas en een PDB minAvailable 1. Bij 2 pods mag er 1 weg.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goed-api
+  namespace: clusterbusters-test
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: goed-api}
+  template:
+    metadata:
+      labels: {app: goed-api}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: api
+          image: registry.access.redhat.com/ubi9/httpd-24:latest
+          ports:
+            - {name: http, containerPort: 8080}
+          readinessProbe:
+            httpGet: {path: /, port: http}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: goed-api
+  namespace: clusterbusters-test
+spec:
+  selector: {app: goed-api}
+  ports:
+    - {name: http, port: 8080, targetPort: http}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: goed-api
+  namespace: clusterbusters-test
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: {app: goed-api}
+
+# ============================================================================ KAPOT
+---
+# BLOCKER (pdb): 1 replica met minAvailable 1 staat 0 disruptions toe. Een drain loopt vast.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kapot-een-replica
+  namespace: clusterbusters-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: kapot-een-replica}
+  template:
+    metadata:
+      labels: {app: kapot-een-replica}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: app
+          image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+          command: ["sleep", "infinity"]
+          resources:
+            requests: {cpu: 5m, memory: 16Mi}
+            limits: {memory: 32Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kapot-een-replica
+  namespace: clusterbusters-test
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: {app: kapot-een-replica}
+---
+# BLOCKER (pdb): genoeg replicas, maar maxUnavailable 0 staat nog steeds niets toe.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kapot-max-nul
+  namespace: clusterbusters-test
+spec:
+  replicas: 3
+  selector:
+    matchLabels: {app: kapot-max-nul}
+  template:
+    metadata:
+      labels: {app: kapot-max-nul}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: app
+          image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+          command: ["sleep", "infinity"]
+          resources:
+            requests: {cpu: 5m, memory: 16Mi}
+            limits: {memory: 32Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kapot-max-nul
+  namespace: clusterbusters-test
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels: {app: kapot-max-nul}
+---
+# WARNING (pdb): de selector matcht geen enkele pod.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kapot-weesje
+  namespace: clusterbusters-test
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels: {app: bestaat-niet}
+---
+# WARNING (unsupported): losse pod zonder controller. Na een drain komt hij niet terug.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kapot-losse-pod
+  namespace: clusterbusters-test
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile: {type: RuntimeDefault}
+  containers:
+    - name: app
+      image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+      command: ["sleep", "infinity"]
+      resources:
+        requests: {cpu: 5m, memory: 16Mi}
+        limits: {memory: 32Mi}
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities: {drop: ["ALL"]}
+---
+# WARNING (deprecated_apis): deze client roept elke 30 seconden de verouderde DeploymentConfig-API
+# aan. In APIRequestCount staat hij daarna als gebruiker bij deploymentconfigs.v1.apps.openshift.io.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: oude-api-client
+  namespace: clusterbusters-test
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: oude-api-client-view
+  namespace: clusterbusters-test
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+  - kind: ServiceAccount
+    name: oude-api-client
+    namespace: clusterbusters-test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kapot-oude-api-client
+  namespace: clusterbusters-test
+spec:
+  # 2 replicas en een PDB, zodat dit onderdeel zelf geen PDB-bevinding geeft.
+  replicas: 2
+  selector:
+    matchLabels: {app: kapot-oude-api-client}
+  template:
+    metadata:
+      labels: {app: kapot-oude-api-client}
+    spec:
+      serviceAccountName: oude-api-client
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: client
+          image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              SA=/var/run/secrets/kubernetes.io/serviceaccount
+              while true; do
+                curl -s -o /dev/null -w "deploymentconfigs: HTTP %{http_code}\n" \
+                  --cacert $SA/ca.crt -H "Authorization: Bearer $(cat $SA/token)" \
+                  https://kubernetes.default.svc/apis/apps.openshift.io/v1/namespaces/clusterbusters-test/deploymentconfigs
+                sleep 30
+              done
+          resources:
+            requests: {cpu: 5m, memory: 16Mi}
+            limits: {memory: 32Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kapot-oude-api-client
+  namespace: clusterbusters-test
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels: {app: kapot-oude-api-client}
+---
+# WARNING (olm): Subscription op een Operator die niet bestaat, dus ResolutionFailed.
+# Zo ziet een Operator eruit die geen updates meer kan krijgen.
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: test
+  namespace: clusterbusters-test-olm-kapot
+spec:
+  targetNamespaces: [clusterbusters-test-olm-kapot]
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: kapot-bestaat-niet
+  namespace: clusterbusters-test-olm-kapot
+spec:
+  name: clusterbusters-bestaat-niet-operator
+  channel: stable
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+---
+# WARNING (olm): Operator met handmatige goedkeuring. OLM maakt een InstallPlan aan die blijft
+# wachten; er wordt niets geïnstalleerd zolang je hem niet goedkeurt. Keur hem dus NIET goed.
+# Bestaat dit package niet in de catalogus van het cluster, dan zie je ResolutionFailed in plaats van
+# een wachtende InstallPlan; ook dat is een warning.
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: test
+  namespace: clusterbusters-test-olm-wacht
+spec:
+  targetNamespaces: [clusterbusters-test-olm-wacht]
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: kapot-wacht-op-goedkeuring
+  namespace: clusterbusters-test-olm-wacht
+spec:
+  name: openshift-cert-manager-operator
+  channel: stable-v1
+  installPlanApproval: Manual
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace

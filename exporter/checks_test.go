@@ -48,6 +48,7 @@ func newScanner(t *testing.T, objs ...runtime.Object) *Scanner {
 		gvrCSV: "ClusterServiceVersionList", gvrNode: "NodeList", gvrMCP: "MachineConfigPoolList",
 		gvrPDB: "PodDisruptionBudgetList", gvrAPIRequestCount: "APIRequestCountList",
 		gvrConfigMap: "ConfigMapList", gvrPod: "PodList",
+		gvrSubscription: "SubscriptionList", gvrInstallPlan: "InstallPlanList",
 	}
 	for _, r := range unsupportedOperatorResources {
 		listKinds[schema.GroupVersionResource{Group: "operator.openshift.io", Version: "v1", Resource: r}] = r + "List"
@@ -312,5 +313,59 @@ func TestMaxOpenShiftVersion(t *testing.T) {
 	}
 	if _, ok := maxOpenShiftVersion(`{"properties":[{"type":"olm.package","value":{}}]}`); ok {
 		t.Error("geen maxOpenShiftVersion verwacht")
+	}
+}
+
+func TestOperatorUpdatesStuck(t *testing.T) {
+	objs := append(healthyCluster(),
+		obj("operators.coreos.com/v1alpha1", "Subscription", "test", "bestaat-niet", map[string]interface{}{
+			"status": conds("ResolutionFailed", "True", "CatalogSourcesUnhealthy", "False"),
+		}),
+		obj("operators.coreos.com/v1alpha1", "Subscription", "test", "goed", map[string]interface{}{
+			"status": conds("ResolutionFailed", "False"),
+		}),
+		obj("operators.coreos.com/v1alpha1", "InstallPlan", "test", "install-abc", map[string]interface{}{
+			"spec":   map[string]interface{}{"approved": false, "clusterServiceVersionNames": []interface{}{"foo.v2"}},
+			"status": map[string]interface{}{"phase": "RequiresApproval"},
+		}),
+		obj("operators.coreos.com/v1alpha1", "InstallPlan", "test", "install-done", map[string]interface{}{
+			"spec":   map[string]interface{}{"approved": true},
+			"status": map[string]interface{}{"phase": "Complete"},
+		}),
+	)
+	res := newScanner(t, objs...).Scan(context.Background())
+	got := map[string]string{}
+	for _, f := range res.Findings {
+		got[f.Resource] = f.Severity
+	}
+	want := map[string]string{
+		"Subscription test/bestaat-niet": Warning,
+		"InstallPlan test/install-abc":   Warning,
+	}
+	for r, sev := range want {
+		if got[r] != sev {
+			t.Errorf("%s: %q, verwacht %q", r, got[r], sev)
+		}
+	}
+	if len(got) != len(want) {
+		t.Errorf("onverwachte bevindingen: %v", got)
+	}
+	if !res.CheckUp["olm"] {
+		t.Error("olm-check hoort te slagen")
+	}
+}
+
+func TestRetrievedUpdatesIsInfo(t *testing.T) {
+	objs := healthyCluster()
+	cv := objs[0].(*unstructured.Unstructured)
+	list, _, _ := unstructured.NestedSlice(cv.Object, "status", "conditions")
+	list = append(list, map[string]interface{}{"type": "RetrievedUpdates", "status": "False", "reason": "NoChannel"})
+	_ = unstructured.SetNestedSlice(cv.Object, list, "status", "conditions")
+	res := newScanner(t, objs...).Scan(context.Background())
+	if len(res.Findings) != 1 || res.Findings[0].Severity != Info {
+		t.Fatalf("verwacht 1 info, kreeg %+v", res.Findings)
+	}
+	if res.Score != 100 || !res.Ready {
+		t.Errorf("info mag score en ready niet raken: %d %v", res.Score, res.Ready)
 	}
 }

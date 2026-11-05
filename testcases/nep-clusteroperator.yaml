@@ -1,0 +1,17 @@
+# OPTIONEEL, vraagt cluster-admin. Een nep-ClusterOperator die zich Degraded en niet-Upgradeable
+# meldt, zodat de checks operators en clusterversion iets vinden zonder dat je het echte platform
+# kapotmaakt. Er draait niets achter: het is alleen een statusobject.
+#
+# De status zet je apart, omdat oc apply de status van een ClusterOperator negeert:
+#   oc apply -f testcases/nep-clusteroperator.yaml
+#   oc patch clusteroperator clusterbusters-nep --subresource=status --type=merge --patch-file=testcases/nep-clusteroperator-status.yaml
+#
+# Opruimen, en daarna niet vergeten:
+#   oc delete clusteroperator clusterbusters-nep
+apiVersion: config.openshift.io/v1
+kind: ClusterOperator
+metadata:
+  name: clusterbusters-nep
+  labels:
+    clusterbusters/test: "true"
+spec: {}
