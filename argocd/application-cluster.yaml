@@ -1,0 +1,31 @@
+# Argo CD-Application voor de clusterbrede configuratie in cluster/: de Cluster Observability
+# Operator, de UIPlugin en de monitoring-config. Eenmalig toepassen; zie docs/cluster-opzetten.md.
+#
+# Los van argocd/application.yaml, omdat de overlay daar alles in namespace clusterbusters zet.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: clusterbusters-cluster
+  namespace: openshift-gitops
+  # Bewust geen resources-finalizer: `oc delete` op deze Application mag de Operator niet meenemen.
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/JappertjeV/ClusterBusters.git
+    targetRevision: main
+    path: cluster
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      # Bewust geen prune: een bestand weghalen uit cluster/ zou anders de Operator verwijderen,
+      # en daarmee Perses en het dashboard. Weghalen doe je hier met de hand.
+      prune: false
+      selfHeal: true
+    # Op een nieuw cluster bestaat de CRD van de UIPlugin pas als de Operator is geïnstalleerd.
+    retry:
+      limit: 10
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
