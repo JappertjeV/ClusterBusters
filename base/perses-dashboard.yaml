@@ -348,7 +348,6 @@ spec:
                 spec:
                   query: |
                     count(count by (group, version, resource) (apiserver_requested_deprecated_apis{removed_release=~".+"})) or vector(0)
-
       # --- Detail Rij 1: PDBs & Node Readiness (TimeSeriesChart) ---
       pdbs-blocking-detail:
         kind: Panel
