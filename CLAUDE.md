@@ -73,8 +73,8 @@ Regels:
   heeft de controller rechten, via het label `argocd.argoproj.io/managed-by=openshift-gitops`.
 - Argo heeft `prune: true` en `selfHeal: true`. Wat uit Git verdwijnt, verdwijnt ook uit het cluster. Handmatige
   wijzigingen in het cluster worden teruggedraaid. Wijzig dus via Git.
-- Cluster-scoped resources (ClusterRole, UIPlugin) kunnen niet via deze app: daar heeft Argo geen rechten.
-  Die gaan in `cluster/` en worden met de hand toegepast.
+- Argo CD mag de `ClusterRole` en `ClusterRoleBinding` van de exporter wel uitrollen (`base/exporter-rbac.yaml`).
+  De `UIPlugin` en de monitoring-config staan in `cluster/` en worden met de hand toegepast.
 - Kustomize-velden zijn hoofdlettergevoelig: `labels`, niet `Labels`.
 
 ## Metrics-contract (scanner → Prometheus → Perses)

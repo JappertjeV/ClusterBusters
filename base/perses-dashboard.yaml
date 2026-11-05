@@ -8,6 +8,271 @@ spec:
       name: "OpenShift Upgrade Readiness"
     duration: 1h
     panels:
+      # --- Readiness: de oordelen van de exporter (upgrade_readiness_*) ---
+      readiness-score:
+        kind: Panel
+        spec:
+          display:
+            name: "Readiness-score"
+            description: "100 min 25 per blocker en 5 per warning, minimaal 0."
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last
+              colorMode: background_solid
+              thresholds:
+                defaultColor: "#c9190b"
+                steps:
+                  - value: 50
+                    color: "#ec7a08"
+                  - value: 100
+                    color: "#3e8635"
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: upgrade_readiness_score
+
+      readiness-ready:
+        kind: Panel
+        spec:
+          display:
+            name: "Klaar voor upgrade?"
+            description: "Ja als er geen blockers zijn en alle checks gelukt zijn."
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last
+              colorMode: background_solid
+              thresholds:
+                defaultColor: "#c9190b"
+                steps:
+                  - value: 1
+                    color: "#3e8635"
+              mappings:
+                - kind: Value
+                  spec:
+                    value: "0"
+                    result:
+                      value: "Nee"
+                - kind: Value
+                  spec:
+                    value: "1"
+                    result:
+                      value: "Ja"
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: upgrade_readiness_ready
+
+      readiness-blockers:
+        kind: Panel
+        spec:
+          display:
+            name: "Blockers"
+            description: "Moeten opgelost zijn voordat je upgradet."
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last
+              colorMode: background_solid
+              thresholds:
+                defaultColor: "#3e8635"
+                steps:
+                  - value: 1
+                    color: "#c9190b"
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(upgrade_readiness_findings{severity="blocker"})
+
+      readiness-warnings:
+        kind: Panel
+        spec:
+          display:
+            name: "Warnings"
+            description: "Bekijk deze voordat je upgradet; ze houden een upgrade niet per se tegen."
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last
+              colorMode: background_solid
+              thresholds:
+                defaultColor: "#3e8635"
+                steps:
+                  - value: 1
+                    color: "#ec7a08"
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(upgrade_readiness_findings{severity="warning"})
+
+      readiness-scan-age:
+        kind: Panel
+        spec:
+          display:
+            name: "Laatste scan"
+            description: "Seconden sinds de laatste afgeronde scan. Hoog betekent dat de cijfers hierboven verouderd zijn."
+          plugin:
+            kind: StatChart
+            spec:
+              calculation: last
+              format:
+                unit: seconds
+              thresholds:
+                defaultColor: "#3e8635"
+                steps:
+                  - value: 600
+                    color: "#c9190b"
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: time() - upgrade_readiness_last_scan_timestamp_seconds
+
+      readiness-fixes:
+        kind: Panel
+        spec:
+          display:
+            name: "Wat moet er gefixt worden"
+            description: "Alle bevindingen van de laatste scan, met per bevinding de oplossing."
+          plugin:
+            kind: Table
+            spec:
+              density: standard
+              defaultColumnHidden: true
+              enableFiltering: true
+              columnSettings:
+                - name: severity
+                  header: Ernst
+                  width: 90
+                  # Alfabetisch staat blocker bovenaan.
+                  sort: asc
+                  cellSettings:
+                    - condition:
+                        kind: Value
+                        spec:
+                          value: blocker
+                      backgroundColor: "#c9190b"
+                      textColor: "#ffffff"
+                    - condition:
+                        kind: Value
+                        spec:
+                          value: warning
+                      backgroundColor: "#ec7a08"
+                      textColor: "#ffffff"
+                - name: category
+                  header: Categorie
+                  width: 130
+                - name: resource
+                  header: Resource
+                  width: 260
+                - name: title
+                  header: Probleem
+                - name: fix
+                  header: Oplossing
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: upgrade_readiness_finding == 1
+
+      readiness-score-history:
+        kind: Panel
+        spec:
+          display:
+            name: "Score in de tijd"
+            description: "Stijgt zodra bevindingen zijn opgelost."
+          plugin:
+            kind: TimeSeriesChart
+            spec:
+              yAxis:
+                min: 0
+                max: 100
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: upgrade_readiness_score
+                    seriesNameFormat: "Score"
+
+      readiness-by-category:
+        kind: Panel
+        spec:
+          display:
+            name: "Blockers en warnings per categorie"
+            description: "Telt alleen blockers en warnings, geen info."
+          plugin:
+            kind: BarChart
+            spec:
+              calculation: last
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum by (category) (upgrade_readiness_findings{severity=~"blocker|warning"})
+                    seriesNameFormat: "{{category}}"
+
+      readiness-checks:
+        kind: Panel
+        spec:
+          display:
+            name: "Status van de checks"
+            description: "Een falende check betekent dat de exporter dit onderdeel niet heeft kunnen beoordelen, meestal door ontbrekende rechten."
+          plugin:
+            kind: Table
+            spec:
+              density: compact
+              defaultColumnHidden: true
+              columnSettings:
+                - name: check
+                  header: Check
+                  sort: asc
+                - name: value
+                  header: Status
+                  width: 90
+                  cellSettings:
+                    - condition:
+                        kind: Value
+                        spec:
+                          value: "1"
+                      text: OK
+                      backgroundColor: "#3e8635"
+                      textColor: "#ffffff"
+                    - condition:
+                        kind: Value
+                        spec:
+                          value: "0"
+                      text: Fout
+                      backgroundColor: "#c9190b"
+                      textColor: "#ffffff"
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: upgrade_readiness_check_up
+
       # --- Bovenste rij: Status Tellers (StatChart) ---
       stat-blocking-pdbs:
         kind: Panel
@@ -161,6 +426,74 @@ spec:
     layouts:
       - kind: Grid
         spec:
+          display:
+            title: "Readiness (exporter)"
+            collapse:
+              open: true
+          items:
+            # Vijf tellers over de volle breedte van 24
+            - x: 0
+              y: 0
+              width: 6
+              height: 4
+              content:
+                $ref: "#/spec/panels/readiness-score"
+            - x: 6
+              y: 0
+              width: 5
+              height: 4
+              content:
+                $ref: "#/spec/panels/readiness-ready"
+            - x: 11
+              y: 0
+              width: 4
+              height: 4
+              content:
+                $ref: "#/spec/panels/readiness-blockers"
+            - x: 15
+              y: 0
+              width: 4
+              height: 4
+              content:
+                $ref: "#/spec/panels/readiness-warnings"
+            - x: 19
+              y: 0
+              width: 5
+              height: 4
+              content:
+                $ref: "#/spec/panels/readiness-scan-age"
+            - x: 0
+              y: 4
+              width: 24
+              height: 9
+              content:
+                $ref: "#/spec/panels/readiness-fixes"
+            - x: 0
+              y: 13
+              width: 10
+              height: 7
+              content:
+                $ref: "#/spec/panels/readiness-score-history"
+            - x: 10
+              y: 13
+              width: 8
+              height: 7
+              content:
+                $ref: "#/spec/panels/readiness-by-category"
+            - x: 18
+              y: 13
+              width: 6
+              height: 7
+              content:
+                $ref: "#/spec/panels/readiness-checks"
+      - kind: Grid
+        spec:
+          # Deze metrics komen rechtstreeks van het platform, en tellen dus ook platform-namespaces
+          # mee die de exporter overslaat. Verschillen met de tellers hierboven kunnen dus kloppen.
+          display:
+            title: "Ruwe platform-metrics"
+            collapse:
+              open: true
           items:
             # Bovenste rij: 4 stat blokken (breedte 6 per stuk = 24 breedte)
             - x: 0

@@ -1,0 +1,78 @@
+# Maakt bewust drie problemen voor de demo. Staat buiten base/, zodat Argo CD dit niet uitrolt
+# en selfHeal de live fix niet terugdraait. Zie testcases/README.md.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clusterbusters-demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+  namespace: clusterbusters-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-app
+  template:
+    metadata:
+      labels:
+        app: demo-app
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+          command: ["sleep", "infinity"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+---
+# Blocker: bij 1 replica staat minAvailable 1 geen enkele disruption toe, dus een drain loopt vast.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: demo-app
+  namespace: clusterbusters-demo
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: demo-app
+---
+# Warning: deze selector matcht geen enkele pod.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: demo-weesje
+  namespace: clusterbusters-demo
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: bestaat-niet
+---
+# Warning: zonder controller komt deze pod na een drain niet terug.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-losse-pod
+  namespace: clusterbusters-demo
+spec:
+  securityContext:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: app
+      image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+      command: ["sleep", "infinity"]
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: ["ALL"]
