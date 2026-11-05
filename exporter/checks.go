@@ -156,7 +156,7 @@ func checkClusterVersion(ctx context.Context, s *Scanner) ([]Finding, error) {
 		}
 		out = append(out, Finding{Severity: Warning, Resource: "ConfigMap openshift-config/admin-acks",
 			Title: clip("Admin-gate niet bevestigd: " + key + ": " + gateData[key]),
-			Fix: clip(fmt.Sprintf(`Lees de gate, los op wat erin staat en bevestig: oc -n openshift-config patch cm admin-acks --type=merge -p '{"data":{"%s":"true"}}'`, key))})
+			Fix:   clip(fmt.Sprintf(`Lees de gate, los op wat erin staat en bevestig: oc -n openshift-config patch cm admin-acks --type=merge -p '{"data":{"%s":"true"}}'`, key))})
 	}
 	return out, nil
 }

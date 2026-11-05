@@ -206,14 +206,14 @@ func TestBrokenPlatform(t *testing.T) {
 		count[key{f.Check, f.Severity}]++
 	}
 	want := map[key]int{
-		{"clusterversion", Blocker}:  2, // Failing + Upgradeable
-		{"clusterversion", Info}:     1, // risk
-		{"clusterversion", Warning}:  1, // alleen de onbevestigde gate
-		{"operators", Blocker}:       2,
-		{"operators", Warning}:       1,
-		{"olm", Blocker}:             2, // max 4.17 < 4.18, en phase Failed
-		{"nodes", Blocker}:           2, // NotReady + MCP Degraded
-		{"nodes", Warning}:           4, // DiskPressure, unschedulable, paused, niet Updated
+		{"clusterversion", Blocker}: 2, // Failing + Upgradeable
+		{"clusterversion", Info}:    1, // risk
+		{"clusterversion", Warning}: 1, // alleen de onbevestigde gate
+		{"operators", Blocker}:      2,
+		{"operators", Warning}:      1,
+		{"olm", Blocker}:            2, // max 4.17 < 4.18, en phase Failed
+		{"nodes", Blocker}:          2, // NotReady + MCP Degraded
+		{"nodes", Warning}:          4, // DiskPressure, unschedulable, paused, niet Updated
 		// Kubernetes 1.32 hoort bij OpenShift 4.19, later dan doel 4.18: warning. 1.40 ook.
 		// De ongebruikte API (requestCount 0) telt niet mee.
 		{"deprecated_apis", Blocker}: 0,
