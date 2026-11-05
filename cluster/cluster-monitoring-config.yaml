@@ -1,11 +1,10 @@
 # Zet user workload monitoring aan, zodat onze eigen exporter gescrapet kan worden.
-# Eenmalig met de hand toepassen: oc apply -f cluster/
+# Argo CD rolt dit uit via argocd/application-cluster.yaml.
 #
-# Staat bewust buiten base/ en k8s/. De overlay in overlays/prod zet alles in namespace
-# perses-system, en dit bestand moet in openshift-monitoring blijven staan.
+# Staat bewust buiten base/. De overlay in overlays/prod zet alles in namespace
+# clusterbusters, en dit bestand moet in openshift-monitoring blijven staan.
 #
-# Vereist ingebouwde monitoring. Op CRC staat die standaard uit: haal daarvoor de overrides
-# cluster-monitoring-operator en monitoring uit ClusterVersion.spec.overrides.
+# Vereist ingebouwde monitoring. Op CRC staat die standaard uit: zie docs/cluster-opzetten.md.
 apiVersion: v1
 kind: ConfigMap
 metadata:

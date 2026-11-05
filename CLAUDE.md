@@ -63,10 +63,13 @@ Kies één van de twee routes. Niet allebei, want dan scrapen twee Prometheussen
 ## Repo-structuur (JappertjeV/ClusterBusters, branch `main`)
 ```
 argocd/application.yaml     Argo CD Application "clusterbusters" → path overlays/prod → ns clusterbusters
-                            (eenmalig: oc apply -n openshift-gitops -f argocd/application.yaml)
+argocd/application-cluster.yaml  Application "clusterbusters-cluster" → path cluster (zonder prune)
+argocd/rbac.yaml            recht van Argo CD op UIPlugins (eenmalig: oc apply -f argocd/)
 base/                       Kustomize-base: monitoring, Perses-datasource, Perses-dashboard
 overlays/prod/              namespace: clusterbusters + labels app: upgrade-readiness, env: productie
-cluster/                    cluster-scoped dingen, met de hand toepassen (UIPlugin voor Perses, monitoring-config)
+cluster/                    clusterbreed, via Argo CD: Cluster Observability Operator, UIPlugin, monitoring-config
+bootstrap/                  GitOps Operator, met de hand: Argo CD kan zichzelf niet installeren
+docs/cluster-opzetten.md    volgorde op een leeg cluster, en wat met de hand blijft
 ```
 Regels:
 - De namespace in de overlay **moet** gelijk zijn aan `spec.destination.namespace` van de Argo-app. Alleen daar
@@ -74,7 +77,8 @@ Regels:
 - Argo heeft `prune: true` en `selfHeal: true`. Wat uit Git verdwijnt, verdwijnt ook uit het cluster. Handmatige
   wijzigingen in het cluster worden teruggedraaid. Wijzig dus via Git.
 - Argo CD mag de `ClusterRole` en `ClusterRoleBinding` van de exporter wel uitrollen (`base/exporter-rbac.yaml`).
-  De `UIPlugin` en de monitoring-config staan in `cluster/` en worden met de hand toegepast.
+- De Application voor `cluster/` prunet bewust niet: een bestand weghalen mag de Operator niet verwijderen.
+- Wijzig de naam van een `OperatorGroup` niet: een tweede in dezelfde namespace laat OLM falen.
 - Kustomize-velden zijn hoofdlettergevoelig: `labels`, niet `Labels`.
 
 ## Metrics-contract (scanner → Prometheus → Perses)
