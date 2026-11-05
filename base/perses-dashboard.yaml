@@ -346,7 +346,8 @@ spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: 'count(count by (group, version, resource) (apiserver_requested_deprecated_apis{removed_release=~".+"})) or vector(0)'
+                  query: |
+                    count(count by (group, version, resource) (apiserver_requested_deprecated_apis{removed_release=~".+"})) or vector(0)
 
       # --- Detail Rij 1: PDBs & Node Readiness (TimeSeriesChart) ---
       pdbs-blocking-detail:
@@ -419,8 +420,9 @@ spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: 'count by (group, version, resource, removed_release) (apiserver_requested_deprecated_apis{removed_release=~".+"})'
-                  seriesNameFormat: '{{group}}/{{version}} {{resource}} (verwijderd in: {{removed_release}})'deprecated-apis-detail:
+                  query: |
+                    count by (group, version, resource, removed_release) (apiserver_requested_deprecated_apis{removed_release=~".+"})
+                  seriesNameFormat: "{{group}}/{{version}} {{resource}} (verwijderd in: {{removed_release}})"
         kind: Panel
         spec:
           display:
