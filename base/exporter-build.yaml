@@ -1,0 +1,28 @@
+# Het image wordt op het cluster zelf gebouwd en komt in de interne registry, zodat er geen
+# externe registry of pull-secret nodig is.
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: upgrade-readiness-exporter
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: upgrade-readiness-exporter
+spec:
+  # Bewust geen triggers: zolang de Go-code ontbreekt, zou elke automatische build mislukken.
+  # Bouwen doe je met: oc start-build upgrade-readiness-exporter -n clusterbusters --follow
+  source:
+    type: Git
+    git:
+      uri: https://github.com/JappertjeV/ClusterBusters.git
+      ref: main
+    contextDir: exporter
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: upgrade-readiness-exporter:latest

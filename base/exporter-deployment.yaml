@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: upgrade-readiness-exporter
+  labels:
+    app.kubernetes.io/name: upgrade-readiness-exporter
+spec:
+  # Op 0 tot het eerste image is gebouwd: met 1 replica geeft het ontbrekende image
+  # ImagePullBackOff en wordt de Argo CD-app Degraded. Zie exporter/README.md.
+  replicas: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: upgrade-readiness-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: upgrade-readiness-exporter
+    spec:
+      serviceAccountName: upgrade-readiness-exporter
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: exporter
+          # Vast registry-pad in plaats van een image.openshift.io/triggers-annotatie: die
+          # annotatie herschrijft dit veld, waarna selfHeal van Argo CD het weer terugzet.
+          image: image-registry.openshift-image-registry.svc:5000/clusterbusters/upgrade-readiness-exporter:latest
+          # Nodig omdat de tag latest bij elke build naar een nieuw image wijst.
+          imagePullPolicy: Always
+          ports:
+            - name: metrics
+              containerPort: 8080
+          # tcpSocket in plaats van GET /metrics: een probe mag geen dure clusterrondgang starten.
+          readinessProbe:
+            tcpSocket:
+              port: metrics
+          livenessProbe:
+            tcpSocket:
+              port: metrics
+            initialDelaySeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: upgrade-readiness-exporter
+  labels:
+    app.kubernetes.io/name: upgrade-readiness-exporter
+spec:
+  selector:
+    app.kubernetes.io/name: upgrade-readiness-exporter
+  ports:
+    - name: metrics
+      port: 8080
+      targetPort: metrics
+---
+# monitoring.coreos.com en niet monitoring.rhobs: alleen dan pakt user workload monitoring dit
+# op. Zo komen de metrics in thanos-querier terecht, en daarmee in het dashboard.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: upgrade-readiness-exporter
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: upgrade-readiness-exporter
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 60s
