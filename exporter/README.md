@@ -106,8 +106,8 @@ up{namespace="clusterbusters", service="upgrade-readiness-exporter"}
 
 ## Dashboard
 
-`base/perses-dashboard.yaml` bevat nog geen panelen voor de metrics van de exporter. Voorstellen:
+`base/perses-dashboard.yaml` toont alle metrics hierboven in de sectie "Readiness (exporter)". De tabel "Wat moet er gefixt worden" komt uit `upgrade_readiness_finding == 1`.
 
-- Stat: `upgrade_readiness_score` en `sum(upgrade_readiness_findings{severity="blocker"})`
-- Tabel "Wat moet er gefixt worden": `upgrade_readiness_finding == 1`, kolommen severity, resource, title, fix
-- Time series: `upgrade_readiness_score`
+## Demo
+
+Zie `testcases/README.md`.
