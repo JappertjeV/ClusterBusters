@@ -1,0 +1,56 @@
+# Eigen ServiceAccount, zodat de leesrechten hieronder niet op de default-account van de
+# namespace terechtkomen.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: upgrade-readiness-exporter
+---
+# De exporter beoordeelt het hele cluster en moet dus clusterbreed kunnen lezen, maar
+# hoeft nooit iets te wijzigen: alleen get, list en watch.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: upgrade-readiness-exporter
+rules:
+  # Verouderde API's
+  - apiGroups: ["apiserver.openshift.io"]
+    resources: ["apirequestcounts"]
+    verbs: ["get", "list", "watch"]
+  # Clusterversie en Operators
+  - apiGroups: ["config.openshift.io"]
+    resources: ["clusterversions", "clusteroperators"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["operators.coreos.com"]
+    resources: ["clusterserviceversions", "subscriptions", "installplans"]
+    verbs: ["get", "list", "watch"]
+  # PodDisruptionBudgets
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "watch"]
+  # Nodes
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["machineconfiguration.openshift.io"]
+    resources: ["machineconfigpools"]
+    verbs: ["get", "list", "watch"]
+  # Niet-ondersteunde resources
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps.openshift.io"]
+    resources: ["deploymentconfigs"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: upgrade-readiness-exporter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: upgrade-readiness-exporter
+subjects:
+  - kind: ServiceAccount
+    name: upgrade-readiness-exporter
+    namespace: clusterbusters
