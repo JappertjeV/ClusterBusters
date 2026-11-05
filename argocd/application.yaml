@@ -1,6 +1,9 @@
 # Argo CD-Application: synchroniseert de manifests in k8s/ van de main-branch
 # naar het cluster waarop Argo CD draait. Eenmalig toepassen, daarna is git leidend:
-#   kubectl apply -n argocd -f argocd/application.yaml
+#   oc apply -n openshift-gitops -f argocd/application.yaml
+#
+# Niet via een app in de UI met pad argocd/ laten lopen: die behandelt dit bestand als
+# zijn eigen manifest, en overschrijft zichzelf als hij ook clusterbusters heet.
 #
 # Dit bestand staat buiten k8s/, omdat Argo CD zijn eigen Application anders
 # mee zou synchroniseren.
@@ -8,8 +11,10 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: clusterbusters
-  # Argo CD leest Applications standaard alleen uit zijn eigen namespace.
-  namespace: argocd
+  # Argo CD leest Applications standaard alleen uit zijn eigen namespace. Bij OpenShift
+  # GitOps is dat openshift-gitops; met `argocd` faalde de sync op
+  # "applications.argoproj.io is forbidden".
+  namespace: openshift-gitops
   # Bewust geen resources-finalizer: `kubectl delete` op deze Application mag de
   # draaiende workloads niet meenemen.
 spec:
@@ -30,6 +35,10 @@ spec:
       prune: true
       # Handmatige wijzigingen in het cluster terugdraaien, zodat git leidend blijft.
       selfHeal: true
+    # De OpenShift GitOps-controller krijgt pas rechten in een namespace met dit label.
+    managedNamespaceMetadata:
+      labels:
+        argocd.argoproj.io/managed-by: openshift-gitops
     syncOptions:
       # De namespace bestaat nog niet en staat ook niet in k8s/.
       - CreateNamespace=true
