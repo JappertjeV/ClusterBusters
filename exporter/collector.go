@@ -10,8 +10,9 @@ import (
 // zijn geheel; dat heeft hetzelfde effect als Reset() op GaugeVecs (opgeloste bevindingen
 // verdwijnen), maar een scrape halverwege een scan ziet nooit een half gevulde set.
 type collector struct {
-	mu  sync.RWMutex
-	res *Result
+	mu   sync.RWMutex
+	res  *Result
+	hist []historyPoint
 
 	score, ready, findings, finding, checkUp, lastScan *prometheus.Desc
 }
@@ -34,10 +35,41 @@ func newCollector() *collector {
 	}
 }
 
+// Scores van de laatste scans voor de grafiek op de webpagina. Alleen in het geheugen: na een
+// herstart van de pod begint de grafiek opnieuw. Langere historie staat in Prometheus.
+const maxHistory = 180
+
+type historyPoint struct {
+	Time     int64 `json:"t"`
+	Score    int   `json:"score"`
+	Blockers int   `json:"blockers"`
+	Warnings int   `json:"warnings"`
+}
+
 func (c *collector) set(r Result) {
+	p := historyPoint{Time: r.Timestamp.Unix(), Score: r.Score}
+	for _, f := range r.Findings {
+		switch f.Severity {
+		case Blocker:
+			p.Blockers++
+		case Warning:
+			p.Warnings++
+		}
+	}
 	c.mu.Lock()
 	c.res = &r
+	c.hist = append(c.hist, p)
+	if len(c.hist) > maxHistory {
+		c.hist = append([]historyPoint(nil), c.hist[len(c.hist)-maxHistory:]...)
+	}
 	c.mu.Unlock()
+}
+
+// snapshot geeft het laatste resultaat (nil als er nog geen scan klaar is) en een kopie van de historie.
+func (c *collector) snapshot() (*Result, []historyPoint) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.res, append([]historyPoint{}, c.hist...)
 }
 
 func (c *collector) Describe(ch chan<- *prometheus.Desc) {

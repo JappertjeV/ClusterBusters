@@ -49,7 +49,13 @@ func kubeToOCP(k minorVersion) minorVersion {
 }
 
 // resolveTarget: TARGET_VERSION als die gezet is, anders de minor na de huidige versie.
+// Zet ook s.current, de huidige clusterversie, voor de webpagina.
 func (s *Scanner) resolveTarget(ctx context.Context) *minorVersion {
+	s.current = ""
+	cv, cvErr := s.client.Resource(gvrClusterVersion).Get(ctx, "version", metav1.GetOptions{})
+	if cvErr == nil {
+		s.current, _, _ = unstructured.NestedString(cv.Object, "status", "desired", "version")
+	}
 	if s.targetOverride != "" {
 		v, err := parseMinor(s.targetOverride)
 		if err != nil {
@@ -58,13 +64,11 @@ func (s *Scanner) resolveTarget(ctx context.Context) *minorVersion {
 		}
 		return &v
 	}
-	cv, err := s.client.Resource(gvrClusterVersion).Get(ctx, "version", metav1.GetOptions{})
-	if err != nil {
-		slog.Warn("clusterversion niet leesbaar, doelversie onbekend", "err", err)
+	if cvErr != nil {
+		slog.Warn("clusterversion niet leesbaar, doelversie onbekend", "err", cvErr)
 		return nil
 	}
-	cur, _, _ := unstructured.NestedString(cv.Object, "status", "desired", "version")
-	v, err := parseMinor(cur)
+	v, err := parseMinor(s.current)
 	if err != nil {
 		slog.Warn("huidige versie onleesbaar, doelversie onbekend", "err", err)
 		return nil
