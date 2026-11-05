@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"k8s.io/client-go/rest"
@@ -47,6 +48,39 @@ func newThanosClient(cfg *rest.Config, baseURL, caFile string) (*thanosClient, e
 }
 
 func (t *thanosClient) Query(ctx context.Context, expr string) ([]map[string]string, error) {
+	samples, err := t.query(ctx, expr)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]map[string]string, 0, len(samples))
+	for _, s := range samples {
+		out = append(out, s.Metric)
+	}
+	return out, nil
+}
+
+// QueryScalar geeft de waarde van de eerste serie, of 0 als er geen serie is.
+func (t *thanosClient) QueryScalar(ctx context.Context, expr string) (float64, error) {
+	samples, err := t.query(ctx, expr)
+	if err != nil || len(samples) == 0 {
+		return 0, err
+	}
+	if len(samples[0].Value) != 2 {
+		return 0, fmt.Errorf("onverwachte waarde van Thanos voor %q", expr)
+	}
+	str, ok := samples[0].Value[1].(string)
+	if !ok {
+		return 0, fmt.Errorf("onverwachte waarde van Thanos voor %q", expr)
+	}
+	return strconv.ParseFloat(str, 64)
+}
+
+type promSample struct {
+	Metric map[string]string `json:"metric"`
+	Value  []interface{}     `json:"value"`
+}
+
+func (t *thanosClient) query(ctx context.Context, expr string) ([]promSample, error) {
 	// partial_response=false: met een halve antwoordset zouden we onterecht "niets gevonden" melden.
 	q := url.Values{"query": {expr}, "partial_response": {"false"}}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, t.baseURL+"/api/v1/query?"+q.Encode(), nil)
@@ -69,9 +103,7 @@ func (t *thanosClient) Query(ctx context.Context, expr string) ([]map[string]str
 		Status string `json:"status"`
 		Error  string `json:"error"`
 		Data   struct {
-			Result []struct {
-				Metric map[string]string `json:"metric"`
-			} `json:"result"`
+			Result []promSample `json:"result"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(body, &parsed); err != nil {
@@ -80,9 +112,5 @@ func (t *thanosClient) Query(ctx context.Context, expr string) ([]map[string]str
 	if parsed.Status != "success" {
 		return nil, fmt.Errorf("Thanos gaf status %q: %s", parsed.Status, parsed.Error)
 	}
-	out := make([]map[string]string, 0, len(parsed.Data.Result))
-	for _, r := range parsed.Data.Result {
-		out = append(out, r.Metric)
-	}
-	return out, nil
+	return parsed.Data.Result, nil
 }

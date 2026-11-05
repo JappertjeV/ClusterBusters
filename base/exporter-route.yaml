@@ -1,0 +1,16 @@
+# Maakt de KPN-dashboardpagina van de exporter bereikbaar via een URL. Vraag de URL op met:
+#   oc get route upgrade-readiness -n clusterbusters
+# Let op: de pagina heeft geen login. Iedereen die de route kan bereiken ziet de bevindingen.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: upgrade-readiness
+spec:
+  to:
+    kind: Service
+    name: upgrade-readiness-exporter
+  port:
+    targetPort: metrics
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

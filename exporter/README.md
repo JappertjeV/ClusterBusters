@@ -12,6 +12,8 @@ alerts staan in `base/exporter-*.yaml`.
 | `checks.go` | de checks zelf, met de Nederlandse titel- en fix-teksten |
 | `collector.go` | zet het laatste scanresultaat om in metrics |
 | `version.go` | doelversie bepalen, Kubernetes- naar OpenShift-versie |
+| `web.go`, `web/index.html` | de KPN-dashboardpagina op `/` en de live data op `/api/status` |
+| `platform.go` | ruwe platform-metrics uit Thanos voor de pagina Platform |
 
 ## Checks
 
@@ -115,3 +117,27 @@ up{namespace="clusterbusters", service="upgrade-readiness-exporter"}
 ## Demo
 
 Zie `testcases/README.md`.
+
+## KPN-dashboardpagina
+
+Naast het Perses-dashboard serveert de exporter een eigen pagina in KPN-huisstijl. Perses kan
+het lettertype, de animaties en losse pagina's niet aan; deze pagina wel. De gegevens komen van
+dezelfde scan als de metrics.
+
+- `/`: de pagina (`web/index.html`, ingebouwd in de binary; lettertype en logo zitten in het bestand)
+- `/api/status`: de laatste scan als JSON. De pagina ververst elke 15 seconden.
+
+Openen via de Route:
+
+```bash
+oc get route upgrade-readiness -n clusterbusters
+```
+
+Of zonder Route, via je eigen computer op http://localhost:8080:
+
+```bash
+oc port-forward -n clusterbusters deploy/upgrade-readiness-exporter 8080:8080
+```
+
+De pagina heeft geen login. De scoregrafiek onthoudt de laatste 180 scans in het geheugen en
+begint na een herstart van de pod opnieuw.

@@ -34,6 +34,11 @@ type Result struct {
 	Score     int
 	Ready     bool
 	Timestamp time.Time
+
+	// Alleen voor de webpagina, niet in de metrics.
+	CurrentVersion string
+	TargetVersion  string
+	Platform       *PlatformStatus
 }
 
 type checkFunc func(ctx context.Context, s *Scanner) ([]Finding, error)
@@ -76,12 +81,17 @@ type Scanner struct {
 
 	// Doelversie van de upgrade, per scan bepaald. nil als die onbekend is.
 	target *minorVersion
+	// Huidige clusterversie, per scan bepaald. Leeg als die onbekend is.
+	current string
 }
 
 func (s *Scanner) Scan(ctx context.Context) Result {
 	s.target = s.resolveTarget(ctx)
 
-	res := Result{CheckUp: map[string]bool{}, Timestamp: time.Now()}
+	res := Result{CheckUp: map[string]bool{}, Timestamp: time.Now(), CurrentVersion: s.current}
+	if s.target != nil {
+		res.TargetVersion = s.target.String()
+	}
 	for _, c := range checks {
 		findings, err := c.run(ctx, s)
 		// Een fout in één check stopt de rest niet. Wat de check wel vond, tonen we ook.
@@ -97,6 +107,7 @@ func (s *Scanner) Scan(ctx context.Context) Result {
 	}
 	res.Findings = dedupe(res.Findings)
 	res.Score, res.Ready = score(res.Findings, res.CheckUp)
+	res.Platform = s.platformStatus(ctx)
 	return res
 }
 
