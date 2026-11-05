@@ -408,19 +408,35 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Deprecated APIs in Gebruik (Per Resource/Groep)"
-            description: "Aangeroepen deprecated API-versies, met de release waarin ze verdwijnen als die bekend is."
+            description: Aangeroepen deprecated API-versies met een geplande verwijderdatum.
+            name: Deprecated APIs in Gebruik (Per Resource/Groep)
           plugin:
             kind: TimeSeriesChart
             spec: {}
           queries:
-            - kind: TimeSeriesQuery
-              spec:
-                plugin:
-                  kind: PrometheusTimeSeriesQuery
-                  spec:
-                    query: count by (group, version, resource, removed_release) (apiserver_requested_deprecated_apis)
-                    seriesNameFormat: "{{group}}/{{version}} {{resource}} (verwijderd in: {{removed_release}})"
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: 'count by (group, version, resource, removed_release) (apiserver_requested_deprecated_apis{removed_release=~".+"})'
+                  seriesNameFormat: '{{group}}/{{version}} {{resource}} (verwijderd in: {{removed_release}})'deprecated-apis-detail:
+        kind: Panel
+        spec:
+          display:
+            description: Aangeroepen deprecated API-versies met een geplande verwijderdatum.
+            name: Deprecated APIs in Gebruik (Per Resource/Groep)
+          plugin:
+            kind: TimeSeriesChart
+            spec: {}
+          queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: 'count by (group, version, resource, removed_release) (apiserver_requested_deprecated_apis{removed_release=~".+"})'
+                  seriesNameFormat: '{{group}}/{{version}} {{resource}} (verwijderd in: {{removed_release}})'
 
     layouts:
       - kind: Grid
