@@ -1,0 +1,49 @@
+apiVersion: perses.dev/v1alpha1
+kind: PersesDashboard
+metadata:
+  name: upgrade-readiness
+  namespace: perses-system
+spec:
+  display:
+    name: "OpenShift Upgrade Readiness"
+  panels:
+    deprecated-apis:
+      kind: Panel
+      spec:
+        display:
+          name: "Deprecated APIs in gebruik"
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            queries:
+              - kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: sum(rate(apiserver_requested_deprecated_apis[5m])) by (resource)
+    unhealthy-operators:
+      kind: Panel
+      spec:
+        display:
+          name: "Unhealthy Cluster Operators"
+        plugin:
+          kind: StatChart
+          spec:
+            queries:
+              - kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: count(cluster_operator_up == 0)
+  layouts:
+    - kind: Grid
+      spec:
+        items:
+          - x: 0
+            y: 0
+            width: 12
+            height: 6
+            content:
+              $ref: "#/panels/deprecated-apis"
+          - x: 12
+            y: 0
+            width: 12
+            height: 6
+            content:
+              $ref: "#/panels/unhealthy-operators"
