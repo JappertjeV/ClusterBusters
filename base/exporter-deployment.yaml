@@ -5,9 +5,9 @@ metadata:
   labels:
     app.kubernetes.io/name: upgrade-readiness-exporter
 spec:
-  # Op 0 tot het eerste image is gebouwd: met 1 replica geeft het ontbrekende image
-  # ImagePullBackOff en wordt de Argo CD-app Degraded. Zie exporter/README.md.
-  replicas: 0
+  # Het eerste image is gebouwd (build 3). Op een nieuw cluster eerst bouwen, anders geeft het
+  # ontbrekende image ImagePullBackOff. Zie exporter/README.md.
+  replicas: 1
   selector:
     matchLabels:
       app.kubernetes.io/name: upgrade-readiness-exporter
