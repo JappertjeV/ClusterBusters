@@ -3,7 +3,9 @@ kind: Kustomization
 resources:
   - ../../base
 
-namespace: perses-system
+# Moet gelijk zijn aan spec.destination.namespace in argocd/application.yaml: alleen daar
+# krijgt de Argo CD-controller rechten, via het managed-by-label.
+namespace: clusterbusters
 
 commonLabels:
   app: upgrade-readiness

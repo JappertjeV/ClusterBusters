@@ -1,0 +1,24 @@
+# Perses-datasources gelden per namespace, en de datasource die COO meelevert staat in zijn
+# eigen namespace. Zonder deze datasource heeft het dashboard hier dus niets om te bevragen.
+apiVersion: perses.dev/v1alpha2
+kind: PersesDatasource
+metadata:
+  name: thanos-querier
+spec:
+  client:
+    tls:
+      enable: true
+      caCert:
+        type: file
+        certPath: /ca/service-ca.crt
+  config:
+    default: true
+    display:
+      name: "Thanos Querier"
+    plugin:
+      kind: PrometheusDatasource
+      spec:
+        proxy:
+          kind: HTTPProxy
+          spec:
+            url: https://thanos-querier.openshift-monitoring.svc.cluster.local:9091
