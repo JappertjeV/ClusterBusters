@@ -334,20 +334,19 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Actieve Deprecated APIs"
-            description: "Aantal API-versies dat is aangeroepen en deprecated is."
+            description: Aantal API-versies dat daadwerkelijk een geplande verwijderdatum heeft.
+            name: Actieve Deprecated APIs
           plugin:
             kind: StatChart
             spec:
               calculation: last
           queries:
-            - kind: TimeSeriesQuery
-              spec:
-                plugin:
-                  kind: PrometheusTimeSeriesQuery
-                  spec:
-                    # Deze metric is een gauge die op 1 blijft staan, dus rate() geeft altijd 0.
-                    query: count(group by (group, version, resource) (apiserver_requested_deprecated_apis)) or vector(0)
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: 'count(count by (group, version, resource) (apiserver_requested_deprecated_apis{removed_release=~".+"})) or vector(0)'
 
       # --- Detail Rij 1: PDBs & Node Readiness (TimeSeriesChart) ---
       pdbs-blocking-detail:
