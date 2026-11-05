@@ -5,9 +5,30 @@ metadata:
 spec:
   config:
     display:
-      name: "OpenShift Upgrade Readiness"
+      name: "ClusterBusters: OpenShift Upgrade Readiness"
     duration: 1h
+    # Kleuren komen uit @kpn/design-tokens: primary #00c300 en #00a800, error #c01313, caution #ff8811 en #e3660e.
+    # Gevulde vlakken gebruiken de felle variant; losse getallen de donkere, omdat #00c300 op wit slecht leest.
+    # Rood is error-600 en niet error-500: op #e22e22 kiest de StatChart zwarte tekst, op #c01313 wit.
     panels:
+      # --- Kop: naam, logo en leeswijzer ---
+      readiness-header:
+        kind: Panel
+        spec:
+          display:
+            name: "Upgrade readiness"
+          plugin:
+            kind: Markdown
+            spec:
+              # HTML en geen Markdown: alleen zo kan het logo een hoogte krijgen. Het staat als data-URI in het
+              # dashboard omdat de console (img-src 'self' data:) geen afbeeldingen van andere hosts toestaat.
+              text: |
+                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;border-bottom:4px solid #00c300;padding-bottom:12px">
+                <img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI3LjIuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxhYWdfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiCgkgdmlld0JveD0iMCAwIDExMCA0MiIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgMTEwIDQyOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzAwQzMwMDt9Cjwvc3R5bGU+CjxnIGlkPSJrcG5fbG9nb18wMDAwMDEwNjExODQ0NDMzNzY4MDc3MjUwMDAwMDAwODgzMTM2MjE5NjQyODMxNjMzMF8iPgoJPGc+CgkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTEwMC43LDEzLjNjLTMuNCwwLTYuMiwwLjYtOC44LDEuNlYzMmg1LjdWMTguM2MwLjgtMC40LDEuOS0wLjYsMi45LTAuNmMzLjEsMCwzLjcsMS45LDMuNyw1LjRWMzJoNS43di05LjcKCQkJQzExMCwxNi44LDEwOC4yLDEzLjMsMTAwLjcsMTMuM3oiLz4KCQk8cmVjdCB4PSI0NiIgeT0iNi45IiBjbGFzcz0ic3QwIiB3aWR0aD0iNS43IiBoZWlnaHQ9IjI1LjEiLz4KCQk8cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjY0LjUsMTMuOSA1OCwxMy45IDUxLjcsMjIuMSA1OC4zLDMxLjkgNjUuMSwzMS45IDU4LDIxLjkgCQkiLz4KCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNNzcuMSwxMy4yYy0zLDAtNi4yLDAuNy04LjYsMS42VjM5aDUuN3YtNi45YzcuMiwxLjMsMTMtMS43LDEyLjktOS40Qzg3LjEsMTYuNiw4My45LDEzLjIsNzcuMSwxMy4yegoJCQkgTTc2LjgsMjguMWMtMC45LDAtMi0wLjItMi42LTAuNHYtOS42YzMuNC0xLjQsNy0wLjQsNyw0LjZDODEuMiwyNi4yLDc5LjksMjguMSw3Ni44LDI4LjF6Ii8+CgkJPGc+CgkJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xNC41LDMwLjljMy43LTEsNy43LTEsMTEuNSwwLjFsMC45LTIuNmMtNC40LTEuMy05LjItMS4zLTEzLjYsMGwwLjksMi42TDE0LjUsMzAuOXoiLz4KCQkJPHBvbHlnb24gY2xhc3M9InN0MCIgcG9pbnRzPSIxNy45LDE0LjEgMjAsMTYuMyAyMi4xLDE0LjEgMjAsMTEuOSAJCQkiLz4KCQkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTE0LjQsMjAuMmMtMC4yLDEuNCwwLjYsMy41LDIuMSw1LjljMS0wLjIsMS45LTAuMiwyLjktMC4ybC0wLjMtMC41Yy0xLjYtMy4xLTEuOS00LTEuOS00LjcKCQkJCWMwLTEsMC44LTEuMSwxLjktMXYtMi40QzE2LjYsMTYuNSwxNC42LDE3LjksMTQuNCwyMC4yeiIvPgoJCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTIuNywyMC4xYy0xLjctMC4xLTMsMS0zLDIuNWMtMC4xLDEuMSwwLjYsMi40LDIuNyw0LjJjMC45LTAuMywxLjgtMC41LDIuNy0wLjdjLTEuNi0xLjYtMi45LTIuOS0yLjctMy40CgkJCQljMC0wLjEsMC0wLjQsMC41LTAuNWwwLjQtMC4xYy0wLjItMC43LTAuMy0xLjQtMC4yLTIuMUgxMi43eiIvPgoJCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMjAuNiwyNS45YzAuOSwwLDEuOSwwLjEsMi45LDAuMmMxLjUtMi40LDIuMy00LjUsMi4xLTUuOWMtMC4zLTIuMy0yLjMtMy43LTQuNy0yLjh2Mi40CgkJCQljMS4xLTAuMSwxLjksMCwxLjksMWMwLDAuNy0wLjMsMS42LTEuOSw0LjdMMjAuNiwyNS45eiIvPgoJCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMjUuMywyNS43bC0wLjUsMC41YzAuOSwwLjIsMS45LDAuNCwyLjcsMC43YzIuMS0xLjgsMi44LTMuMSwyLjctNC4yYzAtMS43LTEuNS0yLjctMy4zLTIuNQoJCQkJYzAsMC43LDAsMS40LTAuMiwyLjFsMC40LDAuMWMwLjUsMC4xLDAuNSwwLjQsMC41LDAuNUMyNy42LDIzLjMsMjcuMywyMy44LDI1LjMsMjUuN3oiLz4KCQkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTYuNCwyMC42YzAuNS0wLjMsMS41LTEsMi43LTEuNmMtMS0yLjQtMS42LTQuNi0xLjYtNi4zYzAtMy42LDAuOS02LjYsMi40LTguMWM0LTQsMTEuOCwxLjEsMTUuNCw2LjYKCQkJCWMxLjEtMC4yLDIuNC0wLjQsMy41LTAuNEMyNS40LDQuNCwxOC4xLDAsMTMuNSwwQzcuMywwLDQuNSw2LjQsNC41LDEyLjdDNC41LDE1LjgsNS41LDE4LjIsNi40LDIwLjZ6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yOS4zLDEyLjdjLTEuOCwwLTIuOSwwLjMtMi45LDAuM2MwLjQsMC45LDAuNywyLDAuOCwzLjFjMC43LTAuMSwxLjQtMC4yLDIuMS0wLjJjNCwwLDYuNCwyLjMsNi41LDUuMQoJCQkJYzAsMS41LTAuOCwzLjUtMS42LDUuNGMtMC40LDEtMS4xLDIuOS0xLjUsNC41Yy0wLjcsMi43LTIuNiwxMC4yLTYuOSw3LjNjLTEsMC40LTIuMywxLjEtMy40LDEuM2MyLDEuOCwzLjQsMi40LDUuNCwyLjQKCQkJCWM1LjMsMCw3LjItNy41LDcuOS0xMC4zYzAuNy0zLjEsMy4zLTcuNCwzLjItMTAuN0MzOC45LDE2LDM0LjQsMTIuNSwyOS4zLDEyLjd6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yNC4zLDM2LjljLTAuOC0wLjgtMS42LTEuNi0yLjMtMi40Yy01LjUsMi4xLTEyLjUtMC40LTE2LjUtNC4zYy0xLjQtMS40LTIuMy0zLjEtMi4zLTQuMwoJCQkJYzAtMS44LDAuNi0zLDEuOC00Yy0wLjQtMS0wLjgtMi0xLjItM2MtMi41LDEuNi0zLjgsNC0zLjgsN2MwLDIuMSwxLjEsNC41LDMuMiw2LjZDNy40LDM2LjcsMTcuMSw0MC42LDI0LjMsMzYuOXoiLz4KCQk8L2c+Cgk8L2c+CjwvZz4KPC9zdmc+Cg==" alt="KPN" height="32">
+                <strong style="font-size:1.25rem">ClusterBusters</strong>
+                <span>Is dit cluster klaar voor de volgende upgrade? <strong style="color:#c01313">Rood</strong> eerst oplossen, <strong style="color:#e3660e">oranje</strong> nakijken, <strong style="color:#00a800">groen</strong> is in orde.</span>
+                </div>
+
       # --- Readiness: de oordelen van de exporter (upgrade_readiness_*) ---
       readiness-score:
         kind: Panel
@@ -16,24 +37,28 @@ spec:
             name: "Readiness-score"
             description: "100 min 25 per blocker en 5 per warning, minimaal 0."
           plugin:
-            kind: StatChart
+            kind: GaugeChart
             spec:
               calculation: last
-              colorMode: background_solid
+              max: 100
+              format:
+                unit: decimal
+                decimalPlaces: 0
               thresholds:
-                defaultColor: "#c9190b"
+                defaultColor: "#c01313"
                 steps:
                   - value: 50
-                    color: "#ec7a08"
+                    color: "#ff8811"
                   - value: 100
-                    color: "#3e8635"
+                    color: "#00c300"
           queries:
             - kind: TimeSeriesQuery
               spec:
                 plugin:
                   kind: PrometheusTimeSeriesQuery
                   spec:
-                    query: upgrade_readiness_score
+                    # Samengevoegd omdat elke pod een eigen serie levert: na een herstart stond elke tegel anders dubbel.
+                    query: max(upgrade_readiness_score)
 
       readiness-ready:
         kind: Panel
@@ -47,16 +72,16 @@ spec:
               calculation: last
               colorMode: background_solid
               thresholds:
-                defaultColor: "#c9190b"
+                defaultColor: "#c01313"
                 steps:
                   - value: 1
-                    color: "#3e8635"
+                    color: "#00c300"
               mappings:
                 - kind: Value
                   spec:
                     value: "0"
                     result:
-                      value: "Nee"
+                      value: "Nog niet"
                 - kind: Value
                   spec:
                     value: "1"
@@ -68,7 +93,7 @@ spec:
                 plugin:
                   kind: PrometheusTimeSeriesQuery
                   spec:
-                    query: upgrade_readiness_ready
+                    query: min(upgrade_readiness_ready)
 
       readiness-blockers:
         kind: Panel
@@ -80,19 +105,19 @@ spec:
             kind: StatChart
             spec:
               calculation: last
-              colorMode: background_solid
+              colorMode: value
               thresholds:
-                defaultColor: "#3e8635"
+                defaultColor: "#00a800"
                 steps:
                   - value: 1
-                    color: "#c9190b"
+                    color: "#c01313"
           queries:
             - kind: TimeSeriesQuery
               spec:
                 plugin:
                   kind: PrometheusTimeSeriesQuery
                   spec:
-                    query: sum(upgrade_readiness_findings{severity="blocker"})
+                    query: sum(max by (category, severity) (upgrade_readiness_findings{severity="blocker"}))
 
       readiness-warnings:
         kind: Panel
@@ -104,19 +129,19 @@ spec:
             kind: StatChart
             spec:
               calculation: last
-              colorMode: background_solid
+              colorMode: value
               thresholds:
-                defaultColor: "#3e8635"
+                defaultColor: "#00a800"
                 steps:
                   - value: 1
-                    color: "#ec7a08"
+                    color: "#e3660e"
           queries:
             - kind: TimeSeriesQuery
               spec:
                 plugin:
                   kind: PrometheusTimeSeriesQuery
                   spec:
-                    query: sum(upgrade_readiness_findings{severity="warning"})
+                    query: sum(max by (category, severity) (upgrade_readiness_findings{severity="warning"}))
 
       readiness-scan-age:
         kind: Panel
@@ -128,20 +153,21 @@ spec:
             kind: StatChart
             spec:
               calculation: last
+              colorMode: value
               format:
                 unit: seconds
               thresholds:
-                defaultColor: "#3e8635"
+                defaultColor: "#00a800"
                 steps:
                   - value: 600
-                    color: "#c9190b"
+                    color: "#c01313"
           queries:
             - kind: TimeSeriesQuery
               spec:
                 plugin:
                   kind: PrometheusTimeSeriesQuery
                   spec:
-                    query: time() - upgrade_readiness_last_scan_timestamp_seconds
+                    query: time() - max(upgrade_readiness_last_scan_timestamp_seconds)
 
       readiness-fixes:
         kind: Panel
@@ -152,13 +178,15 @@ spec:
           plugin:
             kind: Table
             spec:
-              density: standard
+              density: comfortable
               defaultColumnHidden: true
+              # De titel en de fix zijn lange zinnen; met een vaste rijhoogte vallen ze weg.
+              defaultColumnHeight: auto
               enableFiltering: true
               columnSettings:
                 - name: severity
                   header: Ernst
-                  width: 90
+                  width: 100
                   # Alfabetisch staat blocker bovenaan.
                   sort: asc
                   cellSettings:
@@ -166,14 +194,23 @@ spec:
                         kind: Value
                         spec:
                           value: blocker
-                      backgroundColor: "#c9190b"
+                      text: Blocker
+                      backgroundColor: "#c01313"
                       textColor: "#ffffff"
                     - condition:
                         kind: Value
                         spec:
                           value: warning
-                      backgroundColor: "#ec7a08"
-                      textColor: "#ffffff"
+                      text: Warning
+                      backgroundColor: "#ff8811"
+                      textColor: "#131313"
+                    - condition:
+                        kind: Value
+                        spec:
+                          value: info
+                      text: Info
+                      backgroundColor: "#e5f0fd"
+                      textColor: "#13417e"
                 - name: category
                   header: Categorie
                   width: 130
@@ -190,27 +227,44 @@ spec:
                 plugin:
                   kind: PrometheusTimeSeriesQuery
                   spec:
-                    query: upgrade_readiness_finding == 1
+                    query: max by (check, category, severity, resource, title, fix) (upgrade_readiness_finding)
 
       readiness-score-history:
         kind: Panel
         spec:
           display:
             name: "Score in de tijd"
-            description: "Stijgt zodra bevindingen zijn opgelost."
+            description: "Stijgt zodra bevindingen zijn opgelost. Stippellijnen: de drempels van de score-teller."
           plugin:
             kind: TimeSeriesChart
             spec:
               yAxis:
                 min: 0
                 max: 100
+              visual:
+                lineWidth: 3
+                areaOpacity: 0.15
+              querySettings:
+                - queryIndex: 0
+                  colorMode: fixed-single
+                  colorValue: "#00c300"
+              thresholds:
+                defaultColor: "#c01313"
+                steps:
+                  - value: 50
+                    color: "#ff8811"
+                    name: "Oranje vanaf 50"
+                  - value: 100
+                    color: "#00a800"
+                    name: "Groen op 100"
           queries:
             - kind: TimeSeriesQuery
               spec:
                 plugin:
                   kind: PrometheusTimeSeriesQuery
                   spec:
-                    query: upgrade_readiness_score
+                    # Samengevoegd omdat elke pod een eigen serie levert: na een herstart stond elke tegel anders dubbel.
+                    query: max(upgrade_readiness_score)
                     seriesNameFormat: "Score"
 
       readiness-by-category:
@@ -223,13 +277,14 @@ spec:
             kind: BarChart
             spec:
               calculation: last
+              sort: desc
           queries:
             - kind: TimeSeriesQuery
               spec:
                 plugin:
                   kind: PrometheusTimeSeriesQuery
                   spec:
-                    query: sum by (category) (upgrade_readiness_findings{severity=~"blocker|warning"})
+                    query: sum by (category) (max by (category, severity) (upgrade_readiness_findings{severity=~"blocker|warning"}))
                     seriesNameFormat: "{{category}}"
 
       readiness-checks:
@@ -256,14 +311,14 @@ spec:
                         spec:
                           value: "1"
                       text: OK
-                      backgroundColor: "#3e8635"
-                      textColor: "#ffffff"
+                      backgroundColor: "#00c300"
+                      textColor: "#131313"
                     - condition:
                         kind: Value
                         spec:
                           value: "0"
                       text: Fout
-                      backgroundColor: "#c9190b"
+                      backgroundColor: "#c01313"
                       textColor: "#ffffff"
           queries:
             - kind: TimeSeriesQuery
@@ -271,19 +326,25 @@ spec:
                 plugin:
                   kind: PrometheusTimeSeriesQuery
                   spec:
-                    query: upgrade_readiness_check_up
+                    query: min by (check) (upgrade_readiness_check_up)
 
       # --- Bovenste rij: Status Tellers (StatChart) ---
       stat-blocking-pdbs:
         kind: Panel
         spec:
           display:
-            name: "Blokkerende PDBs (0 Allowed Disruptions)"
-            description: "Aantal PDBs met 0 toegestane evicties. Blokkeert node drains tijdens upgrades."
+            name: "Blokkerende PDB's"
+            description: "Aantal PDB's met 0 toegestane evicties. Blokkeert node-drains tijdens upgrades."
           plugin:
             kind: StatChart
             spec:
               calculation: last
+              colorMode: value
+              thresholds:
+                defaultColor: "#00a800"
+                steps:
+                  - value: 1
+                    color: "#c01313"
           queries:
             - kind: TimeSeriesQuery
               spec:
@@ -296,12 +357,18 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Nodes Niet Ready"
-            description: "Aantal cluster-nodes waarvan de Ready condition niet 'true' is."
+            name: "Nodes niet Ready"
+            description: "Aantal cluster-nodes waarvan de Ready-condition niet 'true' is."
           plugin:
             kind: StatChart
             spec:
               calculation: last
+              colorMode: value
+              thresholds:
+                defaultColor: "#00a800"
+                steps:
+                  - value: 1
+                    color: "#c01313"
           queries:
             - kind: TimeSeriesQuery
               spec:
@@ -314,12 +381,18 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Unhealthy Cluster Operators"
+            name: "Ongezonde Operators"
             description: "Aantal Cluster Operators die down, degraded of unavailable zijn."
           plugin:
             kind: StatChart
             spec:
               calculation: last
+              colorMode: value
+              thresholds:
+                defaultColor: "#00a800"
+                steps:
+                  - value: 1
+                    color: "#c01313"
           queries:
             - kind: TimeSeriesQuery
               spec:
@@ -334,30 +407,44 @@ spec:
         kind: Panel
         spec:
           display:
-            description: Aantal API-versies dat daadwerkelijk een geplande verwijderdatum heeft.
-            name: Actieve Deprecated APIs
+            name: "Verouderde API's in gebruik"
+            description: "Aantal API-versies dat daadwerkelijk een geplande verwijderdatum heeft."
           plugin:
             kind: StatChart
             spec:
               calculation: last
+              colorMode: value
+              thresholds:
+                defaultColor: "#00a800"
+                steps:
+                  - value: 1
+                    color: "#e3660e"
           queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |
-                    count(count by (group, version, resource) (apiserver_requested_deprecated_apis{removed_release=~".+"})) or vector(0)
-      # --- Detail Rij 1: PDBs & Node Readiness (TimeSeriesChart) ---
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    # Deze metric is een gauge die op 1 blijft staan, dus rate() geeft altijd 0.
+                    query: count(count by (group, version, resource) (apiserver_requested_deprecated_apis{removed_release=~".+"})) or vector(0)
+
+      # --- Details: tabellen, omdat deze queries altijd 1 geven en een lijngrafiek dan alleen lijnen op 1 toont ---
       pdbs-blocking-detail:
         kind: Panel
         spec:
           display:
-            name: "Pod Disruption Budgets met 0 Disruptions Allowed"
-            description: "Specifieke PDBs per namespace die drains verhinderen."
+            name: "PDB's met 0 disruptions"
+            description: "PDB's per namespace die drains verhinderen. Leeg is goed."
           plugin:
-            kind: TimeSeriesChart
-            spec: {}
+            kind: Table
+            spec:
+              density: compact
+              defaultColumnHidden: true
+              columnSettings:
+                - name: namespace
+                  header: Namespace
+                - name: poddisruptionbudget
+                  header: PDB
           queries:
             - kind: TimeSeriesQuery
               spec:
@@ -371,11 +458,16 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Node Readiness Status (Non-Ready Nodes)"
-            description: "Overzicht van specifieke nodes die niet in Ready-status verkeren."
+            name: "Nodes niet Ready"
+            description: "Nodes die niet in Ready-status verkeren. Leeg is goed."
           plugin:
-            kind: TimeSeriesChart
-            spec: {}
+            kind: Table
+            spec:
+              density: compact
+              defaultColumnHidden: true
+              columnSettings:
+                - name: node
+                  header: Node
           queries:
             - kind: TimeSeriesQuery
               spec:
@@ -385,16 +477,20 @@ spec:
                     query: sum by (node) (kube_node_status_condition{condition="Ready", status!="true"} == 1)
                     seriesNameFormat: "{{node}}"
 
-      # --- Detail Rij 2: Operators & Deprecated APIs (TimeSeriesChart) ---
       unhealthy-operators-detail:
         kind: Panel
         spec:
           display:
-            name: "Gedegradeerde Cluster Operators (Per Operator)"
-            description: "Overzicht van gedegradeerde OpenShift Cluster Operators."
+            name: "Gedegradeerde Operators"
+            description: "Gedegradeerde OpenShift Cluster Operators. Leeg is goed."
           plugin:
-            kind: TimeSeriesChart
-            spec: {}
+            kind: Table
+            spec:
+              density: compact
+              defaultColumnHidden: true
+              columnSettings:
+                - name: name
+                  header: Operator
           queries:
             - kind: TimeSeriesQuery
               spec:
@@ -408,108 +504,130 @@ spec:
         kind: Panel
         spec:
           display:
-            description: Aangeroepen deprecated API-versies met een geplande verwijderdatum.
-            name: Deprecated APIs in Gebruik (Per Resource/Groep)
+            name: "Verouderde API's in gebruik"
+            description: "Aangeroepen deprecated API-versies met een geplande verwijderdatum."
           plugin:
-            kind: TimeSeriesChart
-            spec: {}
-          queries:
-          - kind: TimeSeriesQuery
+            kind: Table
             spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |
-                    count by (group, version, resource, removed_release) (apiserver_requested_deprecated_apis{removed_release=~".+"})
-                  seriesNameFormat: "{{group}}/{{version}} {{resource}} (verwijderd in: {{removed_release}})"
-        kind: Panel
-        spec:
-          display:
-            description: Aangeroepen deprecated API-versies met een geplande verwijderdatum.
-            name: Deprecated APIs in Gebruik (Per Resource/Groep)
-          plugin:
-            kind: TimeSeriesChart
-            spec: {}
+              density: compact
+              defaultColumnHidden: true
+              columnSettings:
+                - name: group
+                  header: Groep
+                  cellSettings:
+                    # De kern-API's hebben geen group-label.
+                    - condition:
+                        kind: Misc
+                        spec:
+                          value: empty
+                      text: core
+                - name: version
+                  header: Versie
+                - name: resource
+                  header: Resource
+                - name: removed_release
+                  header: Verdwijnt in
           queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: 'count by (group, version, resource, removed_release) (apiserver_requested_deprecated_apis{removed_release=~".+"})'
-                  seriesNameFormat: '{{group}}/{{version}} {{resource}} (verwijderd in: {{removed_release}})'
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: count by (group, version, resource, removed_release) (apiserver_requested_deprecated_apis{removed_release=~".+"})
+                    seriesNameFormat: "{{group}}/{{version}} {{resource}} (verwijderd in: {{removed_release}})"
 
     layouts:
       - kind: Grid
         spec:
           display:
-            title: "Readiness (exporter)"
+            title: "Overzicht"
             collapse:
               open: true
           items:
-            # Vijf tellers over de volle breedte van 24
             - x: 0
               y: 0
+              width: 24
+              height: 3
+              content:
+                $ref: "#/spec/panels/readiness-header"
+            # Vijf tellers over de volle breedte van 24
+            - x: 0
+              y: 3
               width: 6
-              height: 4
+              height: 6
               content:
                 $ref: "#/spec/panels/readiness-score"
             - x: 6
-              y: 0
-              width: 5
-              height: 4
+              y: 3
+              width: 6
+              height: 6
               content:
                 $ref: "#/spec/panels/readiness-ready"
-            - x: 11
-              y: 0
+            - x: 12
+              y: 3
               width: 4
-              height: 4
+              height: 6
               content:
                 $ref: "#/spec/panels/readiness-blockers"
-            - x: 15
-              y: 0
+            - x: 16
+              y: 3
               width: 4
-              height: 4
+              height: 6
               content:
                 $ref: "#/spec/panels/readiness-warnings"
-            - x: 19
-              y: 0
-              width: 5
-              height: 4
+            - x: 20
+              y: 3
+              width: 4
+              height: 6
               content:
                 $ref: "#/spec/panels/readiness-scan-age"
+      - kind: Grid
+        spec:
+          display:
+            title: "Wat moet er gefixt worden"
+            collapse:
+              open: true
+          items:
             - x: 0
-              y: 4
+              y: 0
               width: 24
-              height: 9
+              height: 10
               content:
                 $ref: "#/spec/panels/readiness-fixes"
+      - kind: Grid
+        spec:
+          display:
+            title: "Score en checks"
+            collapse:
+              open: true
+          items:
             - x: 0
-              y: 13
+              y: 0
               width: 10
-              height: 7
+              height: 8
               content:
                 $ref: "#/spec/panels/readiness-score-history"
             - x: 10
-              y: 13
-              width: 8
-              height: 7
+              y: 0
+              width: 7
+              height: 8
               content:
                 $ref: "#/spec/panels/readiness-by-category"
-            - x: 18
-              y: 13
-              width: 6
-              height: 7
+            - x: 17
+              y: 0
+              width: 7
+              height: 8
               content:
                 $ref: "#/spec/panels/readiness-checks"
       - kind: Grid
         spec:
           # Deze metrics komen rechtstreeks van het platform, en tellen dus ook platform-namespaces
           # mee die de exporter overslaat. Verschillen met de tellers hierboven kunnen dus kloppen.
+          # Ingeklapt, zodat de demo begint bij de oordelen van de exporter.
           display:
             title: "Ruwe platform-metrics"
             collapse:
-              open: true
+              open: false
           items:
             # Bovenste rij: 4 stat blokken (breedte 6 per stuk = 24 breedte)
             - x: 0
@@ -537,30 +655,30 @@ spec:
               content:
                 $ref: "#/spec/panels/stat-deprecated-apis"
 
-            # Rij 2: PDB en Node grafieken (breedte 12 per stuk)
+            # Rij 2: API-tabel breed, want die heeft vier kolommen en nu ook echt inhoud
             - x: 0
               y: 4
-              width: 12
-              height: 7
-              content:
-                $ref: "#/spec/panels/pdbs-blocking-detail"
-            - x: 12
-              y: 4
-              width: 12
-              height: 7
-              content:
-                $ref: "#/spec/panels/nodes-unready-detail"
-
-            # Rij 3: Operator en API grafieken (breedte 12 per stuk)
-            - x: 0
-              y: 11
-              width: 12
-              height: 7
-              content:
-                $ref: "#/spec/panels/unhealthy-operators-detail"
-            - x: 12
-              y: 11
-              width: 12
-              height: 7
+              width: 24
+              height: 8
               content:
                 $ref: "#/spec/panels/deprecated-apis-detail"
+
+            # Rij 3: drie tabellen die normaal leeg zijn (breedte 8 per stuk)
+            - x: 0
+              y: 12
+              width: 8
+              height: 6
+              content:
+                $ref: "#/spec/panels/pdbs-blocking-detail"
+            - x: 8
+              y: 12
+              width: 8
+              height: 6
+              content:
+                $ref: "#/spec/panels/nodes-unready-detail"
+            - x: 16
+              y: 12
+              width: 8
+              height: 6
+              content:
+                $ref: "#/spec/panels/unhealthy-operators-detail"
