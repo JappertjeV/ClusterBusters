@@ -1,8 +1,0 @@
-apiVersion: monitoring.rhobs/v1alpha1
-kind: ThanosQuerier
-metadata:
-  name: readiness-thanos
-spec:
-  selector:
-    matchLabels:
-      app: upgrade-readiness
