@@ -72,6 +72,7 @@ type Scanner struct {
 	client          dynamic.Interface
 	includePlatform bool
 	targetOverride  string
+	metrics         metricQuerier
 
 	// Doelversie van de upgrade, per scan bepaald. nil als die onbekend is.
 	target *minorVersion

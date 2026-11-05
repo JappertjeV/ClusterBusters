@@ -67,3 +67,18 @@ subjects:
   - kind: ServiceAccount
     name: upgrade-readiness-exporter
     namespace: clusterbusters
+---
+# De check deprecated_apis leest apiserver_requested_deprecated_apis via Thanos Querier, omdat
+# APIRequestCount leeg kan zijn. Deze ingebouwde rol geeft alleen leesrecht op de metrics.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: upgrade-readiness-exporter-monitoring-view
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-monitoring-view
+subjects:
+  - kind: ServiceAccount
+    name: upgrade-readiness-exporter
+    namespace: clusterbusters

@@ -44,9 +44,14 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("dynamic client: %w", err)
 	}
+	thanos, err := newThanosClient(cfg, envOr("THANOS_URL", defaultThanosURL), serviceCAFile)
+	if err != nil {
+		return err
+	}
 
 	scanner := &Scanner{
 		client:          client,
+		metrics:         thanos,
 		includePlatform: os.Getenv("INCLUDE_PLATFORM") == "true",
 		targetOverride:  os.Getenv("TARGET_VERSION"),
 	}

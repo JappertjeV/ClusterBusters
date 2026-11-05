@@ -8,6 +8,7 @@ alerts staan in `base/exporter-*.yaml`.
 |---|---|
 | `main.go` | config, HTTP-server (`/metrics`, `/healthz`), scan-loop |
 | `scan.go` | lijst van checks, score en ready |
+| `thanos.go` | queries naar Thanos Querier |
 | `checks.go` | de checks zelf, met de Nederlandse titel- en fix-teksten |
 | `collector.go` | zet het laatste scanresultaat om in metrics |
 | `version.go` | doelversie bepalen, Kubernetes- naar OpenShift-versie |
@@ -21,8 +22,10 @@ alerts staan in `base/exporter-*.yaml`.
 | `olm` | ClusterServiceVersions | phase ≠ Succeeded, `olm.maxOpenShiftVersion` < doel | |
 | `nodes` | Nodes, MachineConfigPools | Node niet Ready, MCP Degraded | Pressure, cordoned, MCP paused of niet Updated |
 | `pdb` | PodDisruptionBudgets | 0 disruptions allowed | PDB matcht geen pods |
-| `deprecated_apis` | APIRequestCounts | gebruikte API verdwijnt in of vóór de doelversie | gebruikte API verdwijnt later |
+| `deprecated_apis` | APIRequestCounts, `apiserver_requested_deprecated_apis` via Thanos | gebruikte API verdwijnt in of vóór de doelversie | gebruikte API verdwijnt later (geen verwijderversie bekend: info) |
 | `unsupported` | `operator.openshift.io` (`cluster`), Pods | `unsupportedConfigOverrides` gezet | losse pod zonder controller |
+
+`deprecated_apis` gebruikt twee bronnen, omdat `APIRequestCount` leeg kan zijn, zoals op `crc03`. Staat een API in beide, dan telt die van `APIRequestCount`, want alleen die noemt de gebruikers. De metric blijft op 1 staan tot de API-server herstart, dus een opgeloste API verdwijnt pas daarna uit de bevindingen. Is Thanos onbereikbaar of heeft Prometheus geen data van de API-server, dan faalt de check.
 
 PDB's en pods in `openshift-*`, `openshift` en `kube-*` slaat hij over, tenzij `INCLUDE_PLATFORM=true`.
 Een check die faalt (bijvoorbeeld door ontbrekende rechten) zet `upgrade_readiness_check_up{check}` op 0;
@@ -49,6 +52,7 @@ Elke scan vervangt alle bevindingen, dus wat opgelost is verdwijnt bij de volgen
 | `TARGET_VERSION` | leeg | doelversie, bv. `4.19`; leeg = de minor na de huidige |
 | `INCLUDE_PLATFORM` | `false` | ook platform-namespaces meenemen |
 | `LISTEN_ADDR` | `:8080` | |
+| `THANOS_URL` | `https://thanos-querier.openshift-monitoring.svc:9091` | voor `deprecated_apis`; buiten het cluster faalt die check, tenzij je een bereikbaar adres opgeeft |
 
 ## Lokaal draaien en testen
 
