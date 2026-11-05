@@ -1,0 +1,14 @@
+# Start de Perses-server en zet Perses-dashboards in de OpenShift-console.
+# Eenmalig met de hand toepassen: oc apply -f cluster/
+#
+# Vereist de Cluster Observability Operator; getest met versie 1.5.4. Die verwijderde hierbij
+# de RoleBinding prometheus-k8s in zijn eigen namespace, zonder zichtbaar effect op het scrapen.
+apiVersion: observability.openshift.io/v1alpha1
+kind: UIPlugin
+metadata:
+  name: monitoring
+spec:
+  type: Monitoring
+  monitoring:
+    perses:
+      enabled: true
