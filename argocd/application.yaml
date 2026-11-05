@@ -1,11 +1,11 @@
-# Argo CD-Application: synchroniseert de manifests in k8s/ van de main-branch
+# Argo CD-Application: synchroniseert overlays/prod van de main-branch
 # naar het cluster waarop Argo CD draait. Eenmalig toepassen, daarna is git leidend:
 #   oc apply -n openshift-gitops -f argocd/application.yaml
 #
 # Niet via een app in de UI met pad argocd/ laten lopen: die behandelt dit bestand als
 # zijn eigen manifest, en overschrijft zichzelf als hij ook clusterbusters heet.
 #
-# Dit bestand staat buiten k8s/, omdat Argo CD zijn eigen Application anders
+# Dit bestand staat buiten base/ en overlays/, omdat Argo CD zijn eigen Application anders
 # mee zou synchroniseren.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -23,7 +23,7 @@ spec:
     # Publieke repo, dus er is geen repository-Secret nodig.
     repoURL: https://github.com/JappertjeV/ClusterBusters.git
     targetRevision: main
-    path: k8s
+    path: overlays/prod
   destination:
     # Het cluster waarop Argo CD zelf draait.
     server: https://kubernetes.default.svc
@@ -31,7 +31,7 @@ spec:
   syncPolicy:
     automated:
       # Uit git verwijderd is uit het cluster verwijderd. allowEmpty staat standaard
-      # uit, dus een per ongeluk geleegde k8s/ haalt niet alles in een keer weg.
+      # uit, dus een per ongeluk geleegde overlay haalt niet alles in een keer weg.
       prune: true
       # Handmatige wijzigingen in het cluster terugdraaien, zodat git leidend blijft.
       selfHeal: true
@@ -40,5 +40,5 @@ spec:
       labels:
         argocd.argoproj.io/managed-by: openshift-gitops
     syncOptions:
-      # De namespace bestaat nog niet en staat ook niet in k8s/.
+      # De namespace staat niet in de manifests, dus Argo CD moet hem zelf kunnen aanmaken.
       - CreateNamespace=true
