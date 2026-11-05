@@ -1,0 +1,24 @@
+# De Argo CD-controller mag standaard geen UIPlugin wijzigen; dat bleek uit `oc auth can-i`.
+# Hij kan dit recht niet aan zichzelf geven, dus dit bestand pas je met de hand toe.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: clusterbusters-argocd-uiplugins
+rules:
+  # Geen delete: de Application in application-cluster.yaml prunet niet.
+  - apiGroups: ["observability.openshift.io"]
+    resources: ["uiplugins"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: clusterbusters-argocd-uiplugins
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: clusterbusters-argocd-uiplugins
+subjects:
+  - kind: ServiceAccount
+    name: openshift-gitops-argocd-application-controller
+    namespace: openshift-gitops

@@ -1,0 +1,31 @@
+# De OpenShift GitOps Operator levert Argo CD zelf. Argo CD kan zichzelf niet installeren, dus
+# dit bestand pas je met de hand toe; zie docs/cluster-opzetten.md. Overgenomen van het draaiende cluster.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-gitops-operator
+  labels:
+    openshift.io/cluster-monitoring: "true"
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  # Deze naam komt uit de console-installatie. Niet wijzigen: een tweede OperatorGroup in deze
+  # namespace laat OLM falen met TooManyOperatorGroups.
+  name: openshift-gitops-operator-l25vx
+  namespace: openshift-gitops-operator
+spec:
+  upgradeStrategy: Default
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: openshift-gitops-operator
+  namespace: openshift-gitops-operator
+spec:
+  channel: latest
+  installPlanApproval: Automatic
+  name: openshift-gitops-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  startingCSV: openshift-gitops-operator.v1.22.3
