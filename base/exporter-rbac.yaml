@@ -34,7 +34,20 @@ rules:
   - apiGroups: ["machineconfiguration.openshift.io"]
     resources: ["machineconfigpools"]
     verbs: ["get", "list", "watch"]
-  # Niet-ondersteunde resources
+  # Admin-gates en de bevestigingen daarvan (check clusterversion). Alleen deze twee.
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["admin-gates", "admin-acks"]
+    verbs: ["get"]
+  # Niet-ondersteunde resources: unsupportedConfigOverrides en losse pods.
+  # Houd de lijst gelijk met unsupportedOperatorResources in exporter/checks.go.
+  - apiGroups: ["operator.openshift.io"]
+    resources: ["kubeapiservers", "kubecontrollermanagers", "kubeschedulers", "etcds",
+                "openshiftapiservers", "authentications", "networks", "consoles"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
     verbs: ["get", "list", "watch"]
