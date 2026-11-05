@@ -1,0 +1,35 @@
+# monitoring.coreos.com en niet monitoring.rhobs: dan evalueert user workload monitoring deze
+# regels en gaan de alerts naar de Alertmanager van het platform.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: upgrade-readiness
+spec:
+  groups:
+    - name: upgrade-readiness
+      rules:
+        - alert: UpgradeBlockersPresent
+          expr: upgrade_readiness_ready == 0
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            summary: Het cluster is niet klaar voor een upgrade
+            description: >-
+              Score {{ with query "max(upgrade_readiness_score)" }}{{ . | first | value }}{{ end }}/100.
+              Er zijn blockers of falende checks. Zie het dashboard "OpenShift Upgrade Readiness" voor de fixes.
+        - alert: UpgradeReadinessCheckFailing
+          expr: upgrade_readiness_check_up == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Check {{ $labels.check }} van de upgrade-readiness-exporter faalt"
+            description: Meestal ontbreken er rechten. Zie de logs van de exporter en base/exporter-rbac.yaml.
+        - alert: UpgradeReadinessScanStale
+          expr: time() - upgrade_readiness_last_scan_timestamp_seconds > 600
+          labels:
+            severity: warning
+          annotations:
+            summary: De upgrade-readiness-exporter heeft al 10 minuten geen scan afgerond
+            description: De metrics op het dashboard zijn verouderd. Controleer of de exporter-pod draait.

@@ -32,8 +32,12 @@ OpenShift API ──► Go-scanner (/metrics) ──scrape──► Prometheus �
   `UIPlugin`) en **OpenShift GitOps** (namespace `openshift-gitops`).
 - Namespace van het project: **`clusterbusters`**.
 
-### ⚠️ Monitoring: eerst verifiëren, dan pas opruimen
-Het plan is om `base/monitoringstack.yaml` en `base/thanosquerier.yaml` te verwijderen, omdat ze
+### Monitoring: route A gekozen
+Op 5 nov geverifieerd: de platform-monitoring draait. `monitoringstack.yaml` en `thanosquerier.yaml` zijn
+verwijderd; alles gaat via user workload monitoring (`monitoring.coreos.com/v1`). De tekst hieronder is
+de afweging die daaraan voorafging.
+
+Het plan was om `base/monitoringstack.yaml` en `base/thanosquerier.yaml` te verwijderen, omdat ze
 dubbel zouden zijn met de ingebouwde platform-monitoring. **Dat klopt alleen als de platform-monitoring
 inmiddels echt draait.** Eerder (5 nov, ±14:05) was `openshift-monitoring` leeg en bestond
 `co/monitoring` niet: CRC zet de platform-monitoring standaard uit.
@@ -92,7 +96,7 @@ Regels:
   - Table "Wat moet er gefixt worden": `upgrade_readiness_finding == 1` (kolommen severity, resource, title, fix)
   - Time series: `upgrade_readiness_score` (in de demo zie je de score stijgen terwijl je fixt)
 
-## Go-scanner (nog te bouwen, map `scanner/`)
+## Go-scanner (map `exporter/`, zie `exporter/README.md`)
 - `client-go` **dynamic client** (`k8s.io/client-go/dynamic`) + `unstructured`, omdat de meeste resources
   OpenShift-CRD's zijn.
 - Config: eerst `rest.InClusterConfig()`, en als dat faalt `clientcmd` (`~/.kube/config` van `oc login`).
@@ -101,7 +105,6 @@ Regels:
   elke `SCAN_INTERVAL` seconden (standaard 60).
 - Env: `SCAN_INTERVAL`, `TARGET_VERSION` (leeg = volgende minor), `INCLUDE_PLATFORM` (standaard false).
 - Eén falende check mag de scan niet stoppen. Zet dan `check_up{check}=0` en ga door met de rest.
-- Er is een starter (`main.go`) die ClusterOperators uitleest. Bouw daarop voort.
 - Een Python-referentie-implementatie bestaat (upgrade-readiness.zip, buiten de repo), met dezelfde checks
   en Nederlandse uitleg- en fix-teksten. Port de logica en teksten één-op-één.
 
@@ -119,9 +122,8 @@ Regels:
 ### Deploy-onderdelen voor de scanner (in `base/`, behalve RBAC)
 - Deployment + Service (poort `http`/8080, label `app: upgrade-readiness` via de overlay) + ServiceMonitor
   (`/metrics`, 30s). Gebruik de juiste apiGroup per route (zie het monitoring-blok hierboven).
-- RBAC: alleen get/list/watch op de resources uit de checks-tabel. Dat is een **ClusterRole**, en die is
-  cluster-scoped, dus die gaat in `cluster/`. Alternatief: koppel de ingebouwde ClusterRole `cluster-reader`
-  aan de ServiceAccount.
+- RBAC: alleen get/list/watch op de resources uit de checks-tabel, in een **ClusterRole** in
+  `base/exporter-rbac.yaml`. Houd die gelijk met de checks in `exporter/checks.go`.
 - Image: multi-stage Containerfile (UBI go-toolset → ubi-minimal, USER 1001). Bouwen via BuildConfig
   (binary/Docker-strategy) in het cluster, of een registry.
 - Alerting: PrometheusRule (`UpgradeBlockersPresent: upgrade_readiness_ready == 0 for 2m`,
