@@ -1,0 +1,35 @@
+# Argo CD-Application: synchroniseert de manifests in k8s/ van de main-branch
+# naar het cluster waarop Argo CD draait. Eenmalig toepassen, daarna is git leidend:
+#   kubectl apply -n argocd -f argocd/application.yaml
+#
+# Dit bestand staat buiten k8s/, omdat Argo CD zijn eigen Application anders
+# mee zou synchroniseren.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: clusterbusters
+  # Argo CD leest Applications standaard alleen uit zijn eigen namespace.
+  namespace: argocd
+  # Bewust geen resources-finalizer: `kubectl delete` op deze Application mag de
+  # draaiende workloads niet meenemen.
+spec:
+  project: default
+  source:
+    # Publieke repo, dus er is geen repository-Secret nodig.
+    repoURL: https://github.com/JappertjeV/ClusterBusters.git
+    targetRevision: main
+    path: k8s
+  destination:
+    # Het cluster waarop Argo CD zelf draait.
+    server: https://kubernetes.default.svc
+    namespace: clusterbusters
+  syncPolicy:
+    automated:
+      # Uit git verwijderd is uit het cluster verwijderd. allowEmpty staat standaard
+      # uit, dus een per ongeluk geleegde k8s/ haalt niet alles in een keer weg.
+      prune: true
+      # Handmatige wijzigingen in het cluster terugdraaien, zodat git leidend blijft.
+      selfHeal: true
+    syncOptions:
+      # De namespace bestaat nog niet en staat ook niet in k8s/.
+      - CreateNamespace=true
