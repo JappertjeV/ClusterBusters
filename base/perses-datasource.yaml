@@ -21,4 +21,7 @@ spec:
         proxy:
           kind: HTTPProxy
           spec:
+            # Zonder deze verwijzing negeert de proxy de TLS-instellingen uit spec.client en faalt
+            # hij op "certificate signed by unknown authority". De operator maakt <naam>-secret aan.
+            secret: thanos-querier-secret
             url: https://thanos-querier.openshift-monitoring.svc.cluster.local:9091
