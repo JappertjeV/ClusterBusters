@@ -1,0 +1,5 @@
+# Merge-patch die een blokkerende PDB repareert: minAvailable eruit, maxUnavailable 1 erin.
+# Als bestand, zodat het commando ook in de Windows-opdrachtprompt werkt (geen JSON-quotes).
+spec:
+  minAvailable: null
+  maxUnavailable: 1

@@ -111,9 +111,9 @@ Regels:
 ### Checks (GVR → wanneer blocker / warning)
 | check | GVR | Logica |
 |---|---|---|
-| `clusterversion` | `config.openshift.io/v1 clusterversions` (naam `version`) | Failing=True → blocker; Upgradeable=False → blocker; Progressing=True → warning; `status.conditionalUpdates[].risks` → info; key in CM `openshift-config-managed/admin-gates` die niet `"true"` is in `openshift-config/admin-acks` → warning |
+| `clusterversion` | `config.openshift.io/v1 clusterversions` (naam `version`) | Failing=True → blocker; Upgradeable=False → blocker; Progressing=True → warning; `status.conditionalUpdates[].risks` → info; key in CM `openshift-config-managed/admin-gates` die niet `"true"` is in `openshift-config/admin-acks` → warning; `RetrievedUpdates=False` → info |
 | `operators` | `config.openshift.io/v1 clusteroperators` | Available≠True, Degraded=True of Upgradeable=False → blocker; Progressing=True → warning |
-| `olm` | `operators.coreos.com/v1alpha1 clusterserviceversions` | sla `status.reason=Copied` over; phase≠Succeeded → blocker; `olm.maxOpenShiftVersion` (in annotation `operatorframework.io/properties`) < doel-minor → blocker |
+| `olm` | `operators.coreos.com/v1alpha1 clusterserviceversions` | sla `status.reason=Copied` over; phase≠Succeeded → blocker; `olm.maxOpenShiftVersion` (in annotation `operatorframework.io/properties`) < doel-minor → blocker; ook `subscriptions` (ResolutionFailed/CatalogSourcesUnhealthy → warning, InstallPlanFailed → blocker) en `installplans` (phase RequiresApproval, niet approved → warning) |
 | `nodes` | `v1 nodes`, `machineconfiguration.openshift.io/v1 machineconfigpools` | Node Ready≠True → blocker; Memory/Disk/PIDPressure of unschedulable → warning; MCP Degraded → blocker; MCP paused of Updated≠True → warning |
 | `pdb` | `policy/v1 poddisruptionbudgets` | sla openshift-*/kube-* over (tenzij INCLUDE_PLATFORM); expectedPods=0 → warning; disruptionsAllowed=0 → blocker ("blokkeert node-drain, zet maxUnavailable: 1") |
 | `deprecated_apis` | `apiserver.openshift.io/v1 apirequestcounts`, plus `apiserver_requested_deprecated_apis` via Thanos omdat APIRequestCount op CRC leeg is | `status.removedInRelease` gezet en `requestCount>0` → blocker als removed ≤ doel (OCP 4.N ≈ k8s 1.(N+13)), anders warning; toon de topgebruikers uit `status.last24h[].byNode[].byUser[]` |
@@ -131,7 +131,7 @@ Regels:
 
 ## Demo-scenario
 1. Dashboard staat op (bijna) groen.
-2. Maak bewust iets kapot: een Deployment met 1 replica + een PDB met `minAvailable: 1`, een losse pod en een PDB
+2. Maak bewust iets kapot (`testcases/demo-kapot.yaml`; uitgebreider: `testcases/testomgeving.yaml`): een Deployment met 1 replica + een PDB met `minAvailable: 1`, een losse pod en een PDB
    zonder matchende pods. Zet dit in een aparte `testcases/`-map. **Niet** in `base/`, anders draait selfHeal de
    fix steeds terug.
 3. Het dashboard springt op rood, met een concrete fix per bevinding. De alert gaat af.
