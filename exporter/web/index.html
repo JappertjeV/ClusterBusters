@@ -272,6 +272,7 @@ const V={
     ${p&&p.error?`<p class="note" style="color:var(--bad)">${tr('Not all platform metrics could be retrieved:','Niet alle platform-metrics konden worden opgehaald:')} ${esc(p.error)}</p>`:''}
     <section class="stack"><h2>${tr('Deprecated APIs in use',"Verouderde API's in gebruik")}</h2>${p&&p.deprecatedAPIs.length?`<div class="tablebox"><table style="min-width:620px"><thead><tr><th>${tr('Group','Groep')}</th><th>${tr('Version','Versie')}</th><th>Resource</th><th>${tr('Removed in','Verdwijnt in')}</th></tr></thead><tbody>${p.deprecatedAPIs.map(r=>`<tr><td><code>${esc(r.group||'core')}</code></td><td><code>${esc(r.version)}</code></td><td><code>${esc(r.resource)}</code></td><td>${r.removedRelease?`<strong style="color:var(--warn)">${esc(r.removedRelease)}</strong>`:`<span style="color:var(--muted)">${tr('not known','niet bekend')}</span>`}</td></tr>`).join('')}</tbody></table></div>`:okBox(p?tr('No deprecated APIs in use.','Geen verouderde API\'s in gebruik.'):tr('No data: Thanos not reachable.','Geen data: Thanos niet bereikbaar.'))}<p class="note">${tr('Live from Thanos, metric apiserver_requested_deprecated_apis.','Live uit Thanos, metric apiserver_requested_deprecated_apis.')}</p></section></div>`},
   demo:()=>{const d=demoScores();return `<div class="view"><div><div class="head"><h1>${tr('Demo: before and after the live fix','Demo: vóór en na de live fix')}</h1></div><p class="lede">${d.live?tr(`Calculated from the current state of the cluster without the demo: score ${d.base}.`,`Berekend vanaf de huidige stand van het cluster zonder demo: score ${d.base}.`):tr('No scan yet: calculated from a clean cluster (score 100).','Nog geen scan: berekend vanaf een schoon cluster (score 100).')} ${tr('The commands work in cmd, PowerShell and bash, without a local copy of the repo.',"De commando's werken in cmd, PowerShell en bash, zonder lokale kopie van de repo.")}</p>${d.active?`<p class="note" style="color:var(--warn);margin-top:8px">${tr('The demo is on the cluster now (namespace clusterbusters-demo).','De demo staat nu op het cluster (namespace clusterbusters-demo).')}</p>`:''}</div>
+    ${demoLive(d)}
     <section class="cards"><div class="stack"><h2>${tr('Before: demo broken','Vóór: demo kapot')}</h2>${ring(d.kapot,'rv',tr('Before the fix','Vóór de fix'))}</div><div class="stack"><h2>${tr('After: PDB fixed','Na: PDB gefixt')}</h2>${ring(d.gefixt,'rn',tr('After the fix','Na de fix'))}</div></section>
     <section class="stack"><h2>${tr('Play it step by step','Speel het stap voor stap af')}</h2><div>${seg('st',demoSteps().map((s,i)=>[String(i),s.step]),demoK)}</div><div class="fix" style="background:var(--subtle);align-items:center"><code id="cmd" style="overflow-wrap:anywhere;flex:1"></code><button id="copy" class="btn btn-lime" style="border:0;cursor:pointer;min-height:36px;padding:4px 18px" type="button">${tr('Copy','Kopieer')}</button></div><p id="demotxt" style="margin:0"></p><p class="note">${tr('Allow 1 to 2 minutes per step: the exporter scans every 60 seconds.','Reken op 1 à 2 minuten per stap: de exporter scant elke 60 seconden.')}</p></section></div>`},
   perses:()=>{const R=[
@@ -299,6 +300,23 @@ const demoSteps=()=>[
   {step:tr('PDB fixed','PDB gefixt'),cmd:'oc patch pdb demo-app -n clusterbusters-demo --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"',txt:d=>tr(`The blocker is gone, the 2 warnings remain: score ${d.gefixt}.`,`De blocker is weg, de 2 warnings blijven: score ${d.gefixt}.`)},
   {step:tr('Cleaned up','Opgeruimd'),cmd:'oc delete namespace clusterbusters-demo',txt:d=>tr(`Everything gone: back to ${d.base}.`,`Alles weg: terug naar ${d.base}.`)}
 ];
+// In welke stap staat de demo op het cluster? 0 = niet aanwezig, 1 = kapot, 2 = PDB gefixt.
+// "Opgeruimd" is op het cluster niet te onderscheiden van de beginstand: beide hebben geen demo.
+function demoState(){if(!(D&&D.scanned))return null;const fs=D.findings.filter(f=>f.resource.includes('clusterbusters-demo/'));
+  if(!fs.length)return 0;return fs.some(f=>f.severity==='blocker'&&f.resource.endsWith('/demo-app'))?1:2}
+const nextStep=st=>st===0?1:st===1?2:3;
+function demoLive(d){const st=demoState();
+  if(st==null)return `<section class="card stack"><h2>${tr('Live on the cluster','Nu op het cluster')}</h2><p style="margin:0">${tr('Waiting for the first scan.','Wacht op de eerste scan.')}</p></section>`;
+  const steps=demoSteps(),nx=steps[nextStep(st)],now=[tr('No demo on the cluster','Geen demo op het cluster'),tr('Demo is broken: the PDB blocks node drains','Demo staat kapot: de PDB blokkeert node-drains'),tr('PDB fixed: only the 2 warnings remain','PDB gefixt: alleen de 2 warnings staan er nog')][st];
+  return `<section class="card" style="display:flex;flex-wrap:wrap;gap:24px;align-items:center">${ring(D.score,'rlive',tr('Score now','Score nu'))}
+    <div class="stack" style="flex:1 1 320px"><div class="head"><span class="live" style="font-weight:700">${tr('Live on the cluster','Nu op het cluster')}</span></div><h2>${now}</h2>
+    <p style="margin:0">${tr('Next step','Volgende stap')}: <strong>${nx.step}</strong></p>
+    <div class="fix" style="background:var(--subtle);align-items:center"><code id="livecmd" style="overflow-wrap:anywhere;flex:1">${esc(nx.cmd)}</code><button id="livecopy" class="btn btn-lime" style="border:0;cursor:pointer;min-height:36px;padding:4px 18px" type="button">${tr('Copy','Kopieer')}</button></div>
+    <p class="note">${tr('Updates by itself after each scan. Allow 1 to 2 minutes after a command.','Ververst vanzelf na elke scan. Reken op 1 à 2 minuten na een commando.')}</p></div></section>`}
+function bindCopy(btn,code,text){if(!btn)return;btn.onclick=()=>{const done=()=>{btn.textContent=tr('Copied','Gekopieerd')};
+  // navigator.clipboard werkt alleen via https of localhost; anders de tekst selecteren.
+  if(navigator.clipboard)navigator.clipboard.writeText(text).then(done,()=>selectCmd(code));else selectCmd(code)}}
+let lastDemoState=null;
 // Scores van de demo, gerekend vanaf de live stand zonder de bevindingen van de demo zelf.
 function demoScores(){const live=!!(D&&D.scanned);let b=0,w=0,active=false;
   if(live)for(const f of D.findings){if(f.resource.includes('clusterbusters-demo/')){active=true;continue}if(f.severity==='blocker')b++;else if(f.severity==='warning')w++}
@@ -310,23 +328,26 @@ renderMenu();
 function bindSeg(id,fn){const el=document.getElementById(id);if(!el)return;placeSeg(el);el.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const prev=el.querySelector('[aria-pressed="true"]')?.dataset.v;el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));placeSeg(el);fn(b.dataset.v,prev)})}
 function demoStep(k){const s=demoSteps()[+k],d=demoScores(),c=document.getElementById('cmd'),b=document.getElementById('copy');
   c.textContent=s.cmd||tr('No command: first check under Overview how the cluster is doing.','Geen commando: kijk eerst bij Overzicht hoe het cluster ervoor staat.');b.hidden=!s.cmd;b.textContent=tr('Copy','Kopieer');
-  b.onclick=()=>{const done=()=>{b.textContent=tr('Copied','Gekopieerd')};
-    // navigator.clipboard werkt alleen via https of localhost; anders de tekst selecteren.
-    if(navigator.clipboard)navigator.clipboard.writeText(s.cmd).then(done,()=>selectCmd(c));else selectCmd(c)};
+  bindCopy(b,c,s.cmd);
   document.getElementById('demotxt').textContent=s.txt(d)}
 function selectCmd(el){const r=document.createRange();r.selectNodeContents(el);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}
 
 // render: bij navigeren naar boven scrollen, bij een live verversing de scrollpositie houden.
 function render(nav,force){const p=PAGES.some(x=>x[0]===location.hash.slice(1))?location.hash.slice(1):'overzicht';
   menu.querySelectorAll('a').forEach(a=>a.dataset.p===p?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
-  if(!nav&&!force&&!LIVE.has(p)&&!(p==='demo'&&current!=='demo-live'&&D&&D.scanned))return;
-  if(nav)demoK='1';
+  if(!nav&&!force&&!LIVE.has(p)&&p!=='demo')return;
+  const st=demoState();
+  if(nav)demoK=st==null?'1':String(nextStep(st));
+  else if(st!=null&&st!==lastDemoState&&lastDemoState!=null)demoK=String(nextStep(st));
+  if(st!=null)lastDemoState=st;
   const y=scrollY;
   app.innerHTML=LIVE.has(p)&&!(D&&D.scanned)?waiting():V[p]();
   if(p==='overzicht'&&D&&D.scanned){animateRing('r0',nav?0:force?D.score:lastScore,D.score)}
-  if(p==='demo'){const d=demoScores();animateRing('rv',0,d.kapot);animateRing('rn',0,d.gefixt);demoStep(demoK);bindSeg('st',k=>{demoK=k;demoStep(k)})}
+  if(p==='demo'){const d=demoScores();if(nav){animateRing('rv',0,d.kapot);animateRing('rn',0,d.gefixt)}
+    if(D&&D.scanned){animateRing('rlive',nav?0:force?D.score:lastScore,D.score);const st=demoState(),nx=demoSteps()[nextStep(st)];bindCopy(document.getElementById('livecopy'),document.getElementById('livecmd'),nx.cmd)}
+    demoStep(demoK);bindSeg('st',k=>{demoK=k;demoStep(k)})}
   if(p==='fixen')bindSeg('fx',k=>{fxFilter=k;document.getElementById('fxt').innerHTML=fixTable()});
-  current=p==='demo'&&D&&D.scanned?'demo-live':p;
+  current=p;
   if(nav)window.scrollTo(0,0);else window.scrollTo(0,y)}
 
 function renderMeta(){if(offline){meta.textContent=tr('no connection to the exporter','geen verbinding met de exporter');return}
