@@ -24,6 +24,10 @@ type Finding struct {
 	Resource string
 	Title    string
 	Fix      string
+	// Alleen voor de taalknop op de webpagina. Niet in de metrics: Perses kent geen taalkeuze, en
+	// een tweede taal in de labels zou elke bevinding dubbel in Prometheus zetten.
+	TitleNL string
+	FixNL   string
 }
 
 // Result is de uitkomst van één volledige scan. Het collector-deel serveert altijd het
@@ -137,13 +141,16 @@ func score(findings []Finding, up map[string]bool) (int, bool) {
 }
 
 // Twee bevindingen met precies dezelfde labels zouden de scrape laten falen
-// ("collected before with the same name and label values").
+// ("collected before with the same name and label values"). De Nederlandse tekst zit niet in de
+// labels, dus die telt hier niet mee.
 func dedupe(in []Finding) []Finding {
 	seen := map[Finding]bool{}
 	out := in[:0]
 	for _, f := range in {
-		if !seen[f] {
-			seen[f] = true
+		labels := f
+		labels.TitleNL, labels.FixNL = "", ""
+		if !seen[labels] {
+			seen[labels] = true
 			out = append(out, f)
 		}
 	}

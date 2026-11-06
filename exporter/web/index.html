@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="nl">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -35,6 +35,7 @@ code,.mono{font-family:var(--mono);font-size:.875rem}
 /* Bovenstrook en navigatie: groene strook, witte balk, stip die uitgroeit tot lijn */
 .strip{background:var(--green);color:var(--ink);font-size:.8125rem}
 .strip .wrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 24px;min-height:40px}
+.strip .ctl{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
 .top{position:sticky;top:0;z-index:600;background:var(--bg);border-bottom:4px solid transparent;transition:border-color .2s ease-in-out}
 .top.scrolled{border-bottom-color:var(--green)}
 .top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:4px 40px;min-height:72px}
@@ -138,31 +139,37 @@ footer{border-top:1px solid var(--line);padding-block:24px;font-size:.8125rem;co
 </head>
 <body>
 <div class="strip"><div class="wrap">
-  <div class="seg" id="theme" role="group" aria-label="Weergave"><i></i><button data-v="light">Licht</button><button data-v="dark">Donker</button></div>
+  <div class="ctl"><div class="seg" id="theme" role="group" aria-label="Display"><i></i><button data-v="light">Light</button><button data-v="dark">Dark</button></div><div class="seg" id="lang" role="group" aria-label="Language"><i></i><button data-v="en">EN</button><button data-v="nl">NL</button></div></div>
   <span id="meta">clusterbusters</span>
 </div></div>
 <header class="top" id="top"><div class="wrap">
   <a class="brand" href="#overzicht"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI3LjIuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxhYWdfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiCgkgdmlld0JveD0iMCAwIDExMCA0MiIgc3R5bGU9ImVuYWJsZS1iYWNrZ3JvdW5kOm5ldyAwIDAgMTEwIDQyOyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzAwQzMwMDt9Cjwvc3R5bGU+CjxnIGlkPSJrcG5fbG9nb18wMDAwMDEwNjExODQ0NDMzNzY4MDc3MjUwMDAwMDAwODgzMTM2MjE5NjQyODMxNjMzMF8iPgoJPGc+CgkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTEwMC43LDEzLjNjLTMuNCwwLTYuMiwwLjYtOC44LDEuNlYzMmg1LjdWMTguM2MwLjgtMC40LDEuOS0wLjYsMi45LTAuNmMzLjEsMCwzLjcsMS45LDMuNyw1LjRWMzJoNS43di05LjcKCQkJQzExMCwxNi44LDEwOC4yLDEzLjMsMTAwLjcsMTMuM3oiLz4KCQk8cmVjdCB4PSI0NiIgeT0iNi45IiBjbGFzcz0ic3QwIiB3aWR0aD0iNS43IiBoZWlnaHQ9IjI1LjEiLz4KCQk8cG9seWdvbiBjbGFzcz0ic3QwIiBwb2ludHM9IjY0LjUsMTMuOSA1OCwxMy45IDUxLjcsMjIuMSA1OC4zLDMxLjkgNjUuMSwzMS45IDU4LDIxLjkgCQkiLz4KCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNNzcuMSwxMy4yYy0zLDAtNi4yLDAuNy04LjYsMS42VjM5aDUuN3YtNi45YzcuMiwxLjMsMTMtMS43LDEyLjktOS40Qzg3LjEsMTYuNiw4My45LDEzLjIsNzcuMSwxMy4yegoJCQkgTTc2LjgsMjguMWMtMC45LDAtMi0wLjItMi42LTAuNHYtOS42YzMuNC0xLjQsNy0wLjQsNyw0LjZDODEuMiwyNi4yLDc5LjksMjguMSw3Ni44LDI4LjF6Ii8+CgkJPGc+CgkJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xNC41LDMwLjljMy43LTEsNy43LTEsMTEuNSwwLjFsMC45LTIuNmMtNC40LTEuMy05LjItMS4zLTEzLjYsMGwwLjksMi42TDE0LjUsMzAuOXoiLz4KCQkJPHBvbHlnb24gY2xhc3M9InN0MCIgcG9pbnRzPSIxNy45LDE0LjEgMjAsMTYuMyAyMi4xLDE0LjEgMjAsMTEuOSAJCQkiLz4KCQkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTE0LjQsMjAuMmMtMC4yLDEuNCwwLjYsMy41LDIuMSw1LjljMS0wLjIsMS45LTAuMiwyLjktMC4ybC0wLjMtMC41Yy0xLjYtMy4xLTEuOS00LTEuOS00LjcKCQkJCWMwLTEsMC44LTEuMSwxLjktMXYtMi40QzE2LjYsMTYuNSwxNC42LDE3LjksMTQuNCwyMC4yeiIvPgoJCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTIuNywyMC4xYy0xLjctMC4xLTMsMS0zLDIuNWMtMC4xLDEuMSwwLjYsMi40LDIuNyw0LjJjMC45LTAuMywxLjgtMC41LDIuNy0wLjdjLTEuNi0xLjYtMi45LTIuOS0yLjctMy40CgkJCQljMC0wLjEsMC0wLjQsMC41LTAuNWwwLjQtMC4xYy0wLjItMC43LTAuMy0xLjQtMC4yLTIuMUgxMi43eiIvPgoJCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMjAuNiwyNS45YzAuOSwwLDEuOSwwLjEsMi45LDAuMmMxLjUtMi40LDIuMy00LjUsMi4xLTUuOWMtMC4zLTIuMy0yLjMtMy43LTQuNy0yLjh2Mi40CgkJCQljMS4xLTAuMSwxLjksMCwxLjksMWMwLDAuNy0wLjMsMS42LTEuOSw0LjdMMjAuNiwyNS45eiIvPgoJCQk8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMjUuMywyNS43bC0wLjUsMC41YzAuOSwwLjIsMS45LDAuNCwyLjcsMC43YzIuMS0xLjgsMi44LTMuMSwyLjctNC4yYzAtMS43LTEuNS0yLjctMy4zLTIuNQoJCQkJYzAsMC43LDAsMS40LTAuMiwyLjFsMC40LDAuMWMwLjUsMC4xLDAuNSwwLjQsMC41LDAuNUMyNy42LDIzLjMsMjcuMywyMy44LDI1LjMsMjUuN3oiLz4KCQkJPHBhdGggY2xhc3M9InN0MCIgZD0iTTYuNCwyMC42YzAuNS0wLjMsMS41LTEsMi43LTEuNmMtMS0yLjQtMS42LTQuNi0xLjYtNi4zYzAtMy42LDAuOS02LjYsMi40LTguMWM0LTQsMTEuOCwxLjEsMTUuNCw2LjYKCQkJCWMxLjEtMC4yLDIuNC0wLjQsMy41LTAuNEMyNS40LDQuNCwxOC4xLDAsMTMuNSwwQzcuMywwLDQuNSw2LjQsNC41LDEyLjdDNC41LDE1LjgsNS41LDE4LjIsNi40LDIwLjZ6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yOS4zLDEyLjdjLTEuOCwwLTIuOSwwLjMtMi45LDAuM2MwLjQsMC45LDAuNywyLDAuOCwzLjFjMC43LTAuMSwxLjQtMC4yLDIuMS0wLjJjNCwwLDYuNCwyLjMsNi41LDUuMQoJCQkJYzAsMS41LTAuOCwzLjUtMS42LDUuNGMtMC40LDEtMS4xLDIuOS0xLjUsNC41Yy0wLjcsMi43LTIuNiwxMC4yLTYuOSw3LjNjLTEsMC40LTIuMywxLjEtMy40LDEuM2MyLDEuOCwzLjQsMi40LDUuNCwyLjQKCQkJCWM1LjMsMCw3LjItNy41LDcuOS0xMC4zYzAuNy0zLjEsMy4zLTcuNCwzLjItMTAuN0MzOC45LDE2LDM0LjQsMTIuNSwyOS4zLDEyLjd6Ii8+CgkJCTxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yNC4zLDM2LjljLTAuOC0wLjgtMS42LTEuNi0yLjMtMi40Yy01LjUsMi4xLTEyLjUtMC40LTE2LjUtNC4zYy0xLjQtMS40LTIuMy0zLjEtMi4zLTQuMwoJCQkJYzAtMS44LDAuNi0zLDEuOC00Yy0wLjQtMS0wLjgtMi0xLjItM2MtMi41LDEuNi0zLjgsNC0zLjgsN2MwLDIuMSwxLjEsNC41LDMuMiw2LjZDNy40LDM2LjcsMTcuMSw0MC42LDI0LjMsMzYuOXoiLz4KCQk8L2c+Cgk8L2c+CjwvZz4KPC9zdmc+Cg==" alt="KPN"><span>ClusterBusters</span></a>
-  <nav class="menu" id="menu" aria-label="Pagina's"></nav>
+  <nav class="menu" id="menu" aria-label="Pages"></nav>
 </div></header>
 <main class="wrap" id="app"></main>
-<footer><div class="wrap">Ontwerp voor de KPN-hackathon, geen KPN-product. Live data uit de upgrade-readiness-exporter; de pagina Demo rekent vanaf de huidige stand van het cluster. Kleuren en lettertype komen uit de openbare KPN-tokens, de illustraties zijn eigen tekeningen.</div></footer>
+<footer><div class="wrap" id="foot"></div></footer>
 
 <script>
 // Live versie van het KPN-ontwerp: alle cijfers komen uit /api/status van de exporter.
 // Alleen de pagina's Demo en Wat kan in Perses zijn vaste uitleg.
-const PAGES=[['overzicht','Overzicht'],['fixen','Fixen'],['score','Score'],['checks','Checks'],['platform','Platform'],['demo','Demo'],['perses','Wat kan in Perses']];
+// Taal: Engels tenzij de bezoeker NL kiest. Bewust niet de browsertaal volgen: de opdrachtgever wil Engels als standaard.
+let lang='en';try{if(localStorage.getItem('cb-lang')==='nl')lang='nl'}catch(e){}
+const tr=(en,nl)=>lang==='nl'?nl:en;
+// Paginanamen zijn functies, omdat ze per taal verschillen. De ids blijven gelijk, zodat links blijven werken.
+const PAGES=[['overzicht',()=>tr('Overview','Overzicht')],['fixen',()=>tr('Fixes','Fixen')],['score',()=>'Score'],['checks',()=>'Checks'],['platform',()=>'Platform'],['demo',()=>'Demo'],['perses',()=>tr('What Perses can do','Wat kan in Perses')]];
 const LIVE=new Set(['overzicht','fixen','score','checks','platform']);
 const REFRESH_MS=15000;
-let D=null,fetchedAt=0,lastScore=0,current=null,fxFilter='alle',offline=false;
+let D=null,fetchedAt=0,lastScore=0,current=null,fxFilter='alle',offline=false,demoK='1';
 
 const tone=v=>v>=100?'var(--green)':v>=50?'var(--orange)':'var(--red)';
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const SEV={blocker:'Blocker',warning:'Warning',info:'Info'};
 const sevs=sev=>(D?D.findings:[]).filter(f=>f.severity===sev);
+const fTitle=f=>lang==='nl'&&f.titleNl?f.titleNl:f.title;
+const fFix=f=>lang==='nl'&&f.fixNl?f.fixNl:f.fix;
 const ageNow=()=>D&&D.scanned?D.ageSeconds+Math.round((Date.now()-fetchedAt)/1000):null;
-function ageText(s){if(s==null)return '–';if(s<90)return s+' s';if(s<5400)return Math.round(s/60)+' min';return Math.round(s/3600)+' uur'}
+function ageText(s){if(s==null)return '–';if(s<90)return s+' s';if(s<5400)return Math.round(s/60)+' min';return Math.round(s/3600)+tr(' h',' uur')}
 
 // Eigen lijntekeningen in de steunkleuren van de tokens (roze, paars, lichtblauw, groen)
 const I={
@@ -177,117 +184,120 @@ const I={
   check:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="var(--green)"/><path d="M7 12.5l3.5 3.5L17 9" fill="none" stroke="#131313" stroke-width="2"/></svg>'
 };
 
-function ring(v,id,label){const c=2*Math.PI*72;return `<div class="ringcard"><div class="ring"><svg width="176" height="176" viewBox="0 0 176 176" role="img" aria-label="Readiness-score ${v} van 100"><circle class="track" cx="88" cy="88" r="72"/><circle class="arc" id="${id}" cx="88" cy="88" r="72" stroke="${tone(v)}" stroke-dasharray="${c}" stroke-dashoffset="${c*(1-v/100)}"/></svg><b id="${id}-n">${v}</b></div><strong>${label||'Readiness-score'}</strong><small>van 100. Min 25 per blocker, min 5 per warning.</small></div>`}
+function ring(v,id,label){const c=2*Math.PI*72;return `<div class="ringcard"><div class="ring"><svg width="176" height="176" viewBox="0 0 176 176" role="img" aria-label="${tr(`Readiness score ${v} out of 100`,`Readiness-score ${v} van 100`)}"><circle class="track" cx="88" cy="88" r="72"/><circle class="arc" id="${id}" cx="88" cy="88" r="72" stroke="${tone(v)}" stroke-dasharray="${c}" stroke-dashoffset="${c*(1-v/100)}"/></svg><b id="${id}-n">${v}</b></div><strong>${label||tr('Readiness score','Readiness-score')}</strong><small>${tr('out of 100. Minus 25 per blocker, minus 5 per warning.','van 100. Min 25 per blocker, min 5 per warning.')}</small></div>`}
 function animateRing(id,from,to){const arc=document.getElementById(id),n=document.getElementById(id+'-n');if(!arc||reduced||from===to)return;const c=2*Math.PI*72;arc.style.transition='none';arc.setAttribute('stroke-dashoffset',c*(1-from/100));arc.getBoundingClientRect();arc.style.transition='';arc.setAttribute('stroke-dashoffset',c*(1-to/100));const t0=performance.now();(function tick(t){const p=Math.min(1,(t-t0)/500),e=1-Math.pow(1-p,3);n.textContent=Math.round(from+(to-from)*e);if(p<1)requestAnimationFrame(tick)})(t0);
   // Een verborgen tab pauzeert requestAnimationFrame; zonder dit vangnet blijft de teller op de startwaarde staan.
   setTimeout(()=>{n.textContent=to},600)}
 const tag=sev=>`<span class="tag t-${sev}">${SEV[sev]||esc(sev)}</span>`;
-const fnd=f=>`<div class="finding"><div class="head">${tag(f.severity)}<code style="color:var(--muted);overflow-wrap:anywhere">${esc(f.resource)}</code></div><div class="t">${esc(f.title)}</div><div class="fix">${I.check}<div><strong>Zo los je het op.</strong> ${esc(f.fix)}</div></div></div>`;
-function statCard(icon,name,val,sub,color,sample,href){const t=href?'a':'div';return `<${t} class="card stat" ${href?`href="#${href}"`:''}><div class="row">${icon}${sample?'<span class="sample">Voorbeeld</span>':''}</div><div class="val" style="color:${color}">${val}</div><div class="name">${name}</div><div class="sub">${sub}</div></${t}>`}
+const fnd=f=>`<div class="finding"><div class="head">${tag(f.severity)}<code style="color:var(--muted);overflow-wrap:anywhere">${esc(f.resource)}</code></div><div class="t">${esc(fTitle(f))}</div><div class="fix">${I.check}<div><strong>${tr('How to fix it.','Zo los je het op.')}</strong> ${esc(fFix(f))}</div></div></div>`;
+function statCard(icon,name,val,sub,color,sample,href){const t=href?'a':'div';return `<${t} class="card stat" ${href?`href="#${href}"`:''}><div class="row">${icon}${sample?`<span class="sample">${tr('Sample','Voorbeeld')}</span>`:''}</div><div class="val" style="color:${color}">${val}</div><div class="name">${name}</div><div class="sub">${sub}</div></${t}>`}
 const okBox=txt=>`<div class="fix" style="align-items:center">${I.check}<span>${txt}</span></div>`;
 
-function waiting(){return `<div class="view"><div><h1>Upgrade readiness</h1><p class="lede">${offline?'Geen verbinding met de exporter. De pagina probeert het elke 15 seconden opnieuw.':'De eerste scan loopt nog. Even geduld, dit duurt meestal minder dan een minuut.'}</p></div></div>`}
+function waiting(){return `<div class="view"><div><h1>Upgrade readiness</h1><p class="lede">${offline?tr('No connection to the exporter. The page retries every 15 seconds.','Geen verbinding met de exporter. De pagina probeert het elke 15 seconden opnieuw.'):tr('The first scan is still running. This usually takes less than a minute.','De eerste scan loopt nog. Even geduld, dit duurt meestal minder dan een minuut.')}</p></div></div>`}
 
 function platformCards(linked){const p=D.platform;
-  if(!p)return `<section class="cards">${['Blokkerende PDB\'s','Nodes niet Ready','Ongezonde Operators','Verouderde API\'s'].map((n,i)=>statCard([I.pdb,I.node,I.gear,I.api][i],n,'–','Geen platform-metrics: Thanos niet bereikbaar.','var(--muted)',false,linked?'platform':'')).join('')}</section>`;
+  if(!p)return `<section class="cards">${[tr('Blocking PDBs','Blokkerende PDB\'s'),tr('Nodes not Ready','Nodes niet Ready'),tr('Unhealthy Operators','Ongezonde Operators'),tr('Deprecated APIs','Verouderde API\'s')].map((n,i)=>statCard([I.pdb,I.node,I.gear,I.api][i],n,'–',tr('No platform metrics: Thanos not reachable.','Geen platform-metrics: Thanos niet bereikbaar.'),'var(--muted)',false,linked?'platform':'')).join('')}</section>`;
   const h=linked?'platform':'';
   return `<section class="cards" aria-label="Platform">
-  ${statCard(I.pdb,"Blokkerende PDB's",p.blockingPDBs,'Houden node-drains tegen.',p.blockingPDBs?'var(--bad)':'var(--good)',false,h)}
-  ${statCard(I.node,'Nodes niet Ready',p.unreadyNodes,p.unreadyNodes?'Ready-condition niet true.':'Elke node is Ready.',p.unreadyNodes?'var(--bad)':'var(--good)',false,h)}
-  ${statCard(I.gear,'Ongezonde Operators',p.unhealthyOperators,p.unhealthyOperators?'Down, degraded of unavailable.':'Geen enkele down of degraded.',p.unhealthyOperators?'var(--bad)':'var(--good)',false,h)}
-  ${statCard(I.api,"Verouderde API's",p.deprecatedAPIs.length,'Aangeroepen en deprecated.',p.deprecatedAPIs.length?'var(--warn)':'var(--good)',false,h)}
+  ${statCard(I.pdb,tr('Blocking PDBs',"Blokkerende PDB's"),p.blockingPDBs,tr('Stop node drains.','Houden node-drains tegen.'),p.blockingPDBs?'var(--bad)':'var(--good)',false,h)}
+  ${statCard(I.node,tr('Nodes not Ready','Nodes niet Ready'),p.unreadyNodes,p.unreadyNodes?tr('Ready condition is not true.','Ready-condition niet true.'):tr('Every node is Ready.','Elke node is Ready.'),p.unreadyNodes?'var(--bad)':'var(--good)',false,h)}
+  ${statCard(I.gear,tr('Unhealthy Operators','Ongezonde Operators'),p.unhealthyOperators,p.unhealthyOperators?tr('Down, degraded or unavailable.','Down, degraded of unavailable.'):tr('None down or degraded.','Geen enkele down of degraded.'),p.unhealthyOperators?'var(--bad)':'var(--good)',false,h)}
+  ${statCard(I.api,tr('Deprecated APIs',"Verouderde API's"),p.deprecatedAPIs.length,tr('Called and deprecated.','Aangeroepen en deprecated.'),p.deprecatedAPIs.length?'var(--warn)':'var(--good)',false,h)}
   </section>`}
 
 function overview(){const b=sevs('blocker').length,w=sevs('warning').length,up=D.checks.filter(c=>c.up).length,n=D.checks.length,age=ageNow();
   const failing=n-up;
-  const why=b?`${b} ${b>1?'blockers staan':'blocker staat'} de upgrade in de weg${w?`, en ${w} ${w>1?'warnings wil':'warning wil'} je nakijken`:''}. Los ${b>1?'ze':'die'} eerst op, dan stijgt de score.`
+  const why=lang==='nl'?(b?`${b} ${b>1?'blockers staan':'blocker staat'} de upgrade in de weg${w?`, en ${w} ${w>1?'warnings wil':'warning wil'} je nakijken`:''}. Los ${b>1?'ze':'die'} eerst op, dan stijgt de score.`
     :failing?`Geen blockers, maar ${failing} ${failing>1?'checks konden':'check kon'} niet draaien. Zonder die checks is er geen volledig oordeel.`
-    :w?`Geen blockers. ${w} ${w>1?'warnings wil':'warning wil'} je nog nakijken.`:'Geen blockers en alle checks gelukt.';
+    :w?`Geen blockers. ${w} ${w>1?'warnings wil':'warning wil'} je nog nakijken.`:'Geen blockers en alle checks gelukt.')
+    :(b?`${b} ${b>1?'blockers are':'blocker is'} standing in the way of the upgrade${w?`, and ${w} ${w>1?'warnings need':'warning needs'} a review`:''}. Fix ${b>1?'them':'it'} first and the score rises.`
+    :failing?`No blockers, but ${failing} ${failing>1?'checks':'check'} could not run. Without ${failing>1?'them':'it'} there is no complete verdict.`
+    :w?`No blockers. ${w} ${w>1?'warnings still need':'warning still needs'} a review.`:'No blockers and all checks succeeded.');
   const todo=D.findings.filter(f=>f.severity!=='info'),shown=todo.slice(0,6);
-  return `<section class="hero"><div class="txt"><div class="eyebrow">Klaar voor de upgrade${D.targetVersion?` naar ${esc(D.targetVersion)}`:''}?</div><p class="big">${D.ready?'Ja.':'Nog niet.'}</p><p>${why}</p><div class="actions"><a class="btn btn-lime" href="#fixen">Bekijk de fixes</a><a class="btn btn-line" href="#checks">Alle checks</a></div></div>${ring(D.score,'r0')}</section>
-  <section class="cards" aria-label="Kerncijfers">
-  ${statCard(I.shield,'Blockers',b,'Moeten opgelost zijn voordat je upgradet.',b?'var(--bad)':'var(--good)',false,'fixen')}
-  ${statCard(I.warn,'Warnings',w,'Nakijken. Houden een upgrade niet per se tegen.',w?'var(--warn)':'var(--good)',false,'fixen')}
-  ${statCard(I.list,'Checks gelukt',`${up}/${n}`,failing?`${failing} ${failing>1?'checks konden':'check kon'} niet beoordeeld worden.`:'Alle onderdelen konden beoordeeld worden.',failing?'var(--bad)':'var(--good)',false,'checks')}
-  ${statCard(I.clock,'Laatste scan',`<span id="age">${ageText(age)}</span>`,'Geleden. Boven 10 minuten wordt dit rood.',age!=null&&age>600?'var(--bad)':'var(--good)')}
+  return `<section class="hero"><div class="txt"><div class="eyebrow">${D.targetVersion?tr(`Ready for the upgrade to ${esc(D.targetVersion)}?`,`Klaar voor de upgrade naar ${esc(D.targetVersion)}?`):tr('Ready for the upgrade?','Klaar voor de upgrade?')}</div><p class="big">${D.ready?tr('Yes.','Ja.'):tr('Not yet.','Nog niet.')}</p><p>${why}</p><div class="actions"><a class="btn btn-lime" href="#fixen">${tr('View the fixes','Bekijk de fixes')}</a><a class="btn btn-line" href="#checks">${tr('All checks','Alle checks')}</a></div></div>${ring(D.score,'r0')}</section>
+  <section class="cards" aria-label="${tr('Key figures','Kerncijfers')}">
+  ${statCard(I.shield,'Blockers',b,tr('Must be resolved before you upgrade.','Moeten opgelost zijn voordat je upgradet.'),b?'var(--bad)':'var(--good)',false,'fixen')}
+  ${statCard(I.warn,'Warnings',w,tr('Review these. They do not necessarily stop an upgrade.','Nakijken. Houden een upgrade niet per se tegen.'),w?'var(--warn)':'var(--good)',false,'fixen')}
+  ${statCard(I.list,tr('Checks passed','Checks gelukt'),`${up}/${n}`,failing?(lang==='nl'?`${failing} ${failing>1?'checks konden':'check kon'} niet beoordeeld worden.`:`${failing} ${failing>1?'checks':'check'} could not be assessed.`):tr('All parts could be assessed.','Alle onderdelen konden beoordeeld worden.'),failing?'var(--bad)':'var(--good)',false,'checks')}
+  ${statCard(I.clock,tr('Last scan','Laatste scan'),`<span id="age">${ageText(age)}</span>`,tr('Ago. Turns red above 10 minutes.','Geleden. Boven 10 minuten wordt dit rood.'),age!=null&&age>600?'var(--bad)':'var(--good)')}
   </section>
-  <section class="stack"><h2>Dit eerst oplossen</h2><div class="card">${shown.length?shown.map(fnd).join(''):okBox('Niets op te lossen: geen blockers en geen warnings.')}${todo.length>shown.length?`<p style="margin:20px 0 0"><a href="#fixen">En nog ${todo.length-shown.length} meer: bekijk alles bij Fixen</a></p>`:''}</div></section>
+  <section class="stack"><h2>${tr('Fix this first','Dit eerst oplossen')}</h2><div class="card">${shown.length?shown.map(fnd).join(''):okBox(tr('Nothing to fix: no blockers and no warnings.','Niets op te lossen: geen blockers en geen warnings.'))}${todo.length>shown.length?`<p style="margin:20px 0 0"><a href="#fixen">${tr(`And ${todo.length-shown.length} more: see everything under Fixes`,`En nog ${todo.length-shown.length} meer: bekijk alles bij Fixen`)}</a></p>`:''}</div></section>
   ${platformCards(true)}`}
 
 function seg(id,items,cur){return `<div class="seg" id="${id}" role="group"><i></i>${items.map(([v,l])=>`<button data-v="${v}" aria-pressed="${v===cur}">${l}</button>`).join('')}</div>`}
 function placeSeg(el){const on=el.querySelector('[aria-pressed="true"]'),i=el.querySelector('i');if(!on)return;i.style.width=on.offsetWidth+'px';i.style.transform=`translateX(${on.offsetLeft}px)`}
 
 function fixTable(){const rows=D.findings.filter(f=>fxFilter==='alle'||f.severity===fxFilter);
-  if(!rows.length)return okBox(fxFilter==='alle'?'Geen bevindingen: niets te fixen.':'Geen bevindingen met deze ernst.');
-  return `<div class="tablebox"><table style="min-width:920px"><thead><tr><th>Ernst</th><th>Categorie</th><th>Resource</th><th>Probleem</th><th>Oplossing</th></tr></thead><tbody>${rows.map(f=>`<tr><td>${tag(f.severity)}</td><td style="white-space:nowrap">${esc(f.category)}</td><td><code>${esc(f.resource)}</code></td><td>${esc(f.title)}</td><td>${esc(f.fix)}</td></tr>`).join('')}</tbody></table></div>`}
+  if(!rows.length)return okBox(fxFilter==='alle'?tr('No findings: nothing to fix.','Geen bevindingen: niets te fixen.'):tr('No findings with this severity.','Geen bevindingen met deze ernst.'));
+  return `<div class="tablebox"><table style="min-width:920px"><thead><tr><th>${tr('Severity','Ernst')}</th><th>${tr('Category','Categorie')}</th><th>Resource</th><th>${tr('Problem','Probleem')}</th><th>${tr('Fix','Oplossing')}</th></tr></thead><tbody>${rows.map(f=>`<tr><td>${tag(f.severity)}</td><td style="white-space:nowrap">${esc(f.category)}</td><td><code>${esc(f.resource)}</code></td><td>${esc(fTitle(f))}</td><td>${esc(fFix(f))}</td></tr>`).join('')}</tbody></table></div>`}
 
 function chart(){const h=(D.history||[]).filter(p=>p.t);
-  if(h.length<2)return `<p class="note">De grafiek vult zich na een paar scans. De exporter onthoudt de laatste ${180} scans; na een herstart begint hij opnieuw.</p>`;
+  if(h.length<2)return `<p class="note">${tr(`The chart fills up after a few scans. The exporter remembers the last ${180} scans; it starts over after a restart.`,`De grafiek vult zich na een paar scans. De exporter onthoudt de laatste ${180} scans; na een herstart begint hij opnieuw.`)}</p>`;
   const t0=h[0].t,t1=h[h.length-1].t,span=Math.max(1,t1-t0),X=t=>48+(t-t0)/span*736,Y=v=>250-v*2.3;
   let d=`M${X(h[0].t).toFixed(1)} ${Y(h[0].score)}`;for(const p of h.slice(1))d+=`H${X(p.t).toFixed(1)}V${Y(p.score)}`;
   const last=h[h.length-1],mins=Math.round(span/60);
-  return `<div style="overflow-x:auto"><svg class="chart" viewBox="0 0 800 290" role="img" aria-label="Score van ${h[0].score} naar ${last.score} in de laatste ${mins} minuten" style="display:block;width:100%;min-width:620px;height:auto">
+  return `<div style="overflow-x:auto"><svg class="chart" viewBox="0 0 800 290" role="img" aria-label="${tr(`Score from ${h[0].score} to ${last.score} in the last ${mins} minutes`,`Score van ${h[0].score} naar ${last.score} in de laatste ${mins} minuten`)}" style="display:block;width:100%;min-width:620px;height:auto">
     <line x1="48" y1="20" x2="784" y2="20" stroke="var(--green-600)" stroke-dasharray="4 4"/><line x1="48" y1="135" x2="784" y2="135" stroke="var(--orange)" stroke-dasharray="4 4"/><line x1="48" y1="250" x2="784" y2="250" stroke="var(--line)"/>
     <text x="40" y="24" text-anchor="end">100</text><text x="40" y="139" text-anchor="end">50</text><text x="40" y="254" text-anchor="end">0</text>
     <path d="${d}V250H48Z" fill="var(--green)" fill-opacity=".12"/>
     <path d="${d}" fill="none" stroke="var(--green)" stroke-width="3"/>
     <circle cx="784" cy="${Y(last.score)}" r="7" fill="var(--lime)" stroke="#131313" stroke-width="2"/>
     <text class="lab" x="770" y="${Math.max(14,Y(last.score)-14)}" text-anchor="end">${last.score}</text>
-    <text x="48" y="272">${mins} min geleden</text><text x="784" y="272" text-anchor="end">nu</text></svg></div>`}
+    <text x="48" y="272">${tr(`${mins} min ago`,`${mins} min geleden`)}</text><text x="784" y="272" text-anchor="end">${tr('now','nu')}</text></svg></div>`}
 
-const CHECK_INFO={
-  clusterversion:['ClusterVersion, admin-gates en admin-acks','Failing, Upgradeable=False','Progressing, onbevestigde admin-gate'],
-  operators:['ClusterOperators','Niet Available, Degraded, Upgradeable=False','Progressing'],
-  olm:['ClusterServiceVersions, Subscriptions, InstallPlans','Phase niet Succeeded, maxOpenShiftVersion onder de doelversie, mislukte InstallPlan','Update niet op te lossen (ResolutionFailed), catalogus ongezond, update wacht op goedkeuring'],
-  nodes:['Nodes, MachineConfigPools','Node niet Ready, MCP Degraded','Pressure, cordoned, MCP paused of niet Updated'],
-  pdb:['PodDisruptionBudgets','0 disruptions allowed','PDB matcht geen pods'],
-  deprecated_apis:['APIRequestCounts en de platform-metric via Thanos','Gebruikte API verdwijnt in of vóór de doelversie','Gebruikte API verdwijnt later'],
-  unsupported:['operator.openshift.io (cluster), Pods','unsupportedConfigOverrides gezet','Losse pod zonder controller']
-};
+const checkInfo=()=>({
+  clusterversion:[tr('ClusterVersion, admin gates and admin acks','ClusterVersion, admin-gates en admin-acks'),'Failing, Upgradeable=False',tr('Progressing, unacknowledged admin gate','Progressing, onbevestigde admin-gate')],
+  operators:['ClusterOperators',tr('Not Available, Degraded, Upgradeable=False','Niet Available, Degraded, Upgradeable=False'),'Progressing'],
+  olm:['ClusterServiceVersions, Subscriptions, InstallPlans',tr('Phase not Succeeded, maxOpenShiftVersion below the target version, failed InstallPlan','Phase niet Succeeded, maxOpenShiftVersion onder de doelversie, mislukte InstallPlan'),tr('Update cannot be resolved (ResolutionFailed), unhealthy catalog, update waiting for approval','Update niet op te lossen (ResolutionFailed), catalogus ongezond, update wacht op goedkeuring')],
+  nodes:['Nodes, MachineConfigPools',tr('Node not Ready, MCP Degraded','Node niet Ready, MCP Degraded'),tr('Pressure, cordoned, MCP paused or not Updated','Pressure, cordoned, MCP paused of niet Updated')],
+  pdb:['PodDisruptionBudgets','0 disruptions allowed',tr('PDB matches no pods','PDB matcht geen pods')],
+  deprecated_apis:[tr('APIRequestCounts and the platform metric through Thanos','APIRequestCounts en de platform-metric via Thanos'),tr('API in use is removed in or before the target version','Gebruikte API verdwijnt in of vóór de doelversie'),tr('API in use is removed later','Gebruikte API verdwijnt later')],
+  unsupported:['operator.openshift.io (cluster), Pods',tr('unsupportedConfigOverrides set','unsupportedConfigOverrides gezet'),tr('Standalone pod without a controller','Losse pod zonder controller')]
+});
 
 const V={
   overzicht:()=>`<div class="view"><div><h1>Upgrade readiness</h1></div><div class="stack" style="gap:32px">${overview()}</div></div>`,
-  fixen:()=>{const c=s=>sevs(s).length;return `<div class="view"><div><h1>Wat moet er gefixt worden</h1><p class="lede">Alle bevindingen van de laatste scan, ernstigste eerst, met per bevinding de oplossing.</p></div><div>${seg('fx',[['alle',`Alles (${D.findings.length})`],['blocker',`Blockers (${c('blocker')})`],['warning',`Warnings (${c('warning')})`],['info',`Info (${c('info')})`]],fxFilter)}</div><div id="fxt">${fixTable()}</div><p class="note">Live uit de exporter. Een opgeloste bevinding verdwijnt bij de volgende scan.</p></div>`},
+  fixen:()=>{const c=s=>sevs(s).length;return `<div class="view"><div><h1>${tr('What needs fixing','Wat moet er gefixt worden')}</h1><p class="lede">${tr('All findings from the last scan, most severe first, each with its fix.','Alle bevindingen van de laatste scan, ernstigste eerst, met per bevinding de oplossing.')}</p></div><div>${seg('fx',[['alle',`${tr('All','Alles')} (${D.findings.length})`],['blocker',`Blockers (${c('blocker')})`],['warning',`Warnings (${c('warning')})`],['info',`Info (${c('info')})`]],fxFilter)}</div><div id="fxt">${fixTable()}</div><p class="note">${tr('Live from the exporter. A resolved finding disappears at the next scan.','Live uit de exporter. Een opgeloste bevinding verdwijnt bij de volgende scan.')}</p></div>`},
   score:()=>{const rows=Object.entries(D.categories).map(([n,v])=>[n,(v.blocker||0)+(v.warning||0)]).sort((a,b)=>a[0].localeCompare(b[0])),max=Math.max(1,...rows.map(r=>r[1]));
-    return `<div class="view"><div><h1>Score in de tijd</h1><p class="lede">De score stijgt zodra bevindingen zijn opgelost. Elke scan vervangt alle bevindingen.</p></div>
-    <section class="card stack"><div class="head"><h2>Sinds de start van de exporter</h2></div>${chart()}
-    <p class="note">Stippellijnen: de drempels van de score. Onder 50 rood, vanaf 50 oranje, op 100 groen.</p></section>
-    <section class="card stack"><h2>Blockers en warnings per categorie</h2><div class="bars">${rows.map(([n,v])=>`<div class="bar"><span>${esc(n)}</span><div><i style="width:${v/max*100}%"></i></div><strong style="text-align:right">${v}</strong></div>`).join('')}</div></section></div>`},
-  checks:()=>{const up=D.checks.filter(c=>c.up).length;return `<div class="view"><div><h1>Status van de checks</h1><p class="lede">Een falende check betekent dat de exporter dit onderdeel niet heeft kunnen beoordelen, meestal door ontbrekende rechten. De andere checks lopen dan door.</p></div>
-    <div class="lime-box" ${up<D.checks.length?'style="background:var(--red)"':''}><b>${up} van ${D.checks.length}</b><span ${up<D.checks.length?'style="color:#fff"':''}>checks gelukt</span></div>
-    <div class="tablebox"><table style="min-width:860px"><thead><tr><th>Check</th><th>Leest</th><th>Blocker bij</th><th>Warning bij</th><th>Status</th></tr></thead><tbody>${D.checks.map(c=>{const r=CHECK_INFO[c.name]||['','',''];return `<tr><td style="white-space:nowrap"><code>${esc(c.name)}</code></td><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${c.up?'<span class="tag t-ok">OK</span>':'<span class="tag t-blocker">Faalt</span>'}</td></tr>`}).join('')}</tbody></table></div>
-    <p class="note">Status: live uit upgrade_readiness_check_up. Bij een falende check staat de oorzaak in de logs van de exporter.</p></div>`},
-  platform:()=>{const p=D.platform;return `<div class="view"><div><h1>Ruwe platform-metrics</h1><p class="lede">Rechtstreeks van het platform, via Thanos. Deze metrics tellen ook platform-namespaces mee die de exporter overslaat, dus een verschil met het Overzicht kan kloppen.</p></div>
+    return `<div class="view"><div><h1>${tr('Score over time','Score in de tijd')}</h1><p class="lede">${tr('The score rises as findings are resolved. Each scan replaces all findings.','De score stijgt zodra bevindingen zijn opgelost. Elke scan vervangt alle bevindingen.')}</p></div>
+    <section class="card stack"><div class="head"><h2>${tr('Since the exporter started','Sinds de start van de exporter')}</h2></div>${chart()}
+    <p class="note">${tr('Dotted lines: the score thresholds. Red below 50, orange from 50, green at 100.','Stippellijnen: de drempels van de score. Onder 50 rood, vanaf 50 oranje, op 100 groen.')}</p></section>
+    <section class="card stack"><h2>${tr('Blockers and warnings per category','Blockers en warnings per categorie')}</h2><div class="bars">${rows.map(([n,v])=>`<div class="bar"><span>${esc(n)}</span><div><i style="width:${v/max*100}%"></i></div><strong style="text-align:right">${v}</strong></div>`).join('')}</div></section></div>`},
+  checks:()=>{const up=D.checks.filter(c=>c.up).length,info=checkInfo();return `<div class="view"><div><h1>${tr('Check status','Status van de checks')}</h1><p class="lede">${tr('A failing check means the exporter could not assess this part, usually because of missing permissions. The other checks keep running.','Een falende check betekent dat de exporter dit onderdeel niet heeft kunnen beoordelen, meestal door ontbrekende rechten. De andere checks lopen dan door.')}</p></div>
+    <div class="lime-box" ${up<D.checks.length?'style="background:var(--red)"':''}><b>${tr(`${up} of ${D.checks.length}`,`${up} van ${D.checks.length}`)}</b><span ${up<D.checks.length?'style="color:#fff"':''}>${tr('checks passed','checks gelukt')}</span></div>
+    <div class="tablebox"><table style="min-width:860px"><thead><tr><th>Check</th><th>${tr('Reads','Leest')}</th><th>${tr('Blocker on','Blocker bij')}</th><th>${tr('Warning on','Warning bij')}</th><th>Status</th></tr></thead><tbody>${D.checks.map(c=>{const r=info[c.name]||['','',''];return `<tr><td style="white-space:nowrap"><code>${esc(c.name)}</code></td><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${c.up?'<span class="tag t-ok">OK</span>':`<span class="tag t-blocker">${tr('Failing','Faalt')}</span>`}</td></tr>`}).join('')}</tbody></table></div>
+    <p class="note">${tr('Status: live from upgrade_readiness_check_up. For a failing check, the cause is in the exporter logs.','Status: live uit upgrade_readiness_check_up. Bij een falende check staat de oorzaak in de logs van de exporter.')}</p></div>`},
+  platform:()=>{const p=D.platform;return `<div class="view"><div><h1>${tr('Raw platform metrics','Ruwe platform-metrics')}</h1><p class="lede">${tr('Directly from the platform, through Thanos. These metrics also count platform namespaces that the exporter skips, so a difference with the Overview can be correct.','Rechtstreeks van het platform, via Thanos. Deze metrics tellen ook platform-namespaces mee die de exporter overslaat, dus een verschil met het Overzicht kan kloppen.')}</p></div>
     ${platformCards(false)}
-    ${p&&p.error?`<p class="note" style="color:var(--bad)">Niet alle platform-metrics konden worden opgehaald: ${esc(p.error)}</p>`:''}
-    <section class="stack"><h2>Verouderde API's in gebruik</h2>${p&&p.deprecatedAPIs.length?`<div class="tablebox"><table style="min-width:620px"><thead><tr><th>Groep</th><th>Versie</th><th>Resource</th><th>Verdwijnt in</th></tr></thead><tbody>${p.deprecatedAPIs.map(r=>`<tr><td><code>${esc(r.group||'core')}</code></td><td><code>${esc(r.version)}</code></td><td><code>${esc(r.resource)}</code></td><td>${r.removedRelease?`<strong style="color:var(--warn)">${esc(r.removedRelease)}</strong>`:'<span style="color:var(--muted)">niet bekend</span>'}</td></tr>`).join('')}</tbody></table></div>`:okBox(p?'Geen verouderde API\'s in gebruik.':'Geen data: Thanos niet bereikbaar.')}<p class="note">Live uit Thanos, metric apiserver_requested_deprecated_apis.</p></section></div>`},
-  demo:()=>{const d=demoScores();return `<div class="view"><div><div class="head"><h1>Demo: vóór en na de live fix</h1></div><p class="lede">${d.live?`Berekend vanaf de huidige stand van het cluster zonder demo: score ${d.base}.`:'Nog geen scan: berekend vanaf een schoon cluster (score 100).'} De commando's werken in cmd, PowerShell en bash, zonder lokale kopie van de repo.</p>${d.active?`<p class="note" style="color:var(--warn);margin-top:8px">De demo staat nu op het cluster (namespace clusterbusters-demo).</p>`:''}</div>
-    <section class="cards"><div class="stack"><h2>Vóór: demo kapot</h2>${ring(d.kapot,'rv','Vóór de fix')}</div><div class="stack"><h2>Na: PDB gefixt</h2>${ring(d.gefixt,'rn','Na de fix')}</div></section>
-    <section class="stack"><h2>Speel het stap voor stap af</h2><div>${seg('st',DEMO.map((s,i)=>[String(i),s.step]),'1')}</div><div class="fix" style="background:var(--subtle);align-items:center"><code id="cmd" style="overflow-wrap:anywhere;flex:1"></code><button id="copy" class="btn btn-lime" style="border:0;cursor:pointer;min-height:36px;padding:4px 18px" type="button">Kopieer</button></div><p id="demotxt" style="margin:0"></p><p class="note">Reken op 1 à 2 minuten per stap: de exporter scant elke 60 seconden.</p></section></div>`},
+    ${p&&p.error?`<p class="note" style="color:var(--bad)">${tr('Not all platform metrics could be retrieved:','Niet alle platform-metrics konden worden opgehaald:')} ${esc(p.error)}</p>`:''}
+    <section class="stack"><h2>${tr('Deprecated APIs in use',"Verouderde API's in gebruik")}</h2>${p&&p.deprecatedAPIs.length?`<div class="tablebox"><table style="min-width:620px"><thead><tr><th>${tr('Group','Groep')}</th><th>${tr('Version','Versie')}</th><th>Resource</th><th>${tr('Removed in','Verdwijnt in')}</th></tr></thead><tbody>${p.deprecatedAPIs.map(r=>`<tr><td><code>${esc(r.group||'core')}</code></td><td><code>${esc(r.version)}</code></td><td><code>${esc(r.resource)}</code></td><td>${r.removedRelease?`<strong style="color:var(--warn)">${esc(r.removedRelease)}</strong>`:`<span style="color:var(--muted)">${tr('not known','niet bekend')}</span>`}</td></tr>`).join('')}</tbody></table></div>`:okBox(p?tr('No deprecated APIs in use.','Geen verouderde API\'s in gebruik.'):tr('No data: Thanos not reachable.','Geen data: Thanos niet bereikbaar.'))}<p class="note">${tr('Live from Thanos, metric apiserver_requested_deprecated_apis.','Live uit Thanos, metric apiserver_requested_deprecated_apis.')}</p></section></div>`},
+  demo:()=>{const d=demoScores();return `<div class="view"><div><div class="head"><h1>${tr('Demo: before and after the live fix','Demo: vóór en na de live fix')}</h1></div><p class="lede">${d.live?tr(`Calculated from the current state of the cluster without the demo: score ${d.base}.`,`Berekend vanaf de huidige stand van het cluster zonder demo: score ${d.base}.`):tr('No scan yet: calculated from a clean cluster (score 100).','Nog geen scan: berekend vanaf een schoon cluster (score 100).')} ${tr('The commands work in cmd, PowerShell and bash, without a local copy of the repo.',"De commando's werken in cmd, PowerShell en bash, zonder lokale kopie van de repo.")}</p>${d.active?`<p class="note" style="color:var(--warn);margin-top:8px">${tr('The demo is on the cluster now (namespace clusterbusters-demo).','De demo staat nu op het cluster (namespace clusterbusters-demo).')}</p>`:''}</div>
+    <section class="cards"><div class="stack"><h2>${tr('Before: demo broken','Vóór: demo kapot')}</h2>${ring(d.kapot,'rv',tr('Before the fix','Vóór de fix'))}</div><div class="stack"><h2>${tr('After: PDB fixed','Na: PDB gefixt')}</h2>${ring(d.gefixt,'rn',tr('After the fix','Na de fix'))}</div></section>
+    <section class="stack"><h2>${tr('Play it step by step','Speel het stap voor stap af')}</h2><div>${seg('st',demoSteps().map((s,i)=>[String(i),s.step]),demoK)}</div><div class="fix" style="background:var(--subtle);align-items:center"><code id="cmd" style="overflow-wrap:anywhere;flex:1"></code><button id="copy" class="btn btn-lime" style="border:0;cursor:pointer;min-height:36px;padding:4px 18px" type="button">${tr('Copy','Kopieer')}</button></div><p id="demotxt" style="margin:0"></p><p class="note">${tr('Allow 1 to 2 minutes per step: the exporter scans every 60 seconds.','Reken op 1 à 2 minuten per stap: de exporter scant elke 60 seconden.')}</p></section></div>`},
   perses:()=>{const R=[
-    ['kan','Kleuren uit deze huisstijl','Thresholds en colorMode op de tellers, cellSettings in tabellen, vaste lijnkleur op de grafiek.'],
-    ['kan','Scorering','GaugeChart met thresholds en max 100. De vorm kiest Perses.'],
-    ['kan','Logo en naam bovenaan','Markdown-paneel. DOMPurify laat afbeeldingen door en de console staat data:-afbeeldingen toe (img-src). Niet in de console gezien.'],
-    ['kan','Secties','Grid-layouts met titel, inklapbaar. Platform-metrics starten ingeklapt.'],
-    ['kan',"Verouderde API's als tabel",'Paneelsoort Table met dezelfde query.'],
-    ['deels','Groen vlak bovenaan','Inline style in het Markdown-paneel kan een vlak en ronde hoeken geven, maar de tekst erin is vast: het kan niet meekleuren met de score.'],
-    ['deels','Lange teksten','defaultColumnHeight: auto op de tabel. Effect niet in de console gezien.'],
-    ['deels','Tekst op gevulde vlakken','Perses kiest zelf zwart of wit op contrast.'],
-    ['deels','Balken per categorie','BarChart heeft geen kleuroptie. Kleur komt uit het console-thema.'],
-    ['deels','Sortering op ernst','Alleen alfabetisch op de ruwe waarde: blocker, info, warning.'],
-    ['deels','Licht en donker','Volgt het console-thema. Gekozen kleuren zijn in beide modi gelijk.'],
-    ['niet','Lettertype KPN Extended','De console laadt alleen zijn eigen lettertype. Een paneel kan geen @font-face toevoegen.'],
-    ['niet','Animaties','Geen stip-naar-lijn, schuivende indicator of optellende score: dat vraagt eigen CSS of JavaScript.'],
-    ['niet','Hero met knoppen die meekleurt','Een paneel kan geen tekst kiezen op basis van een metric, behalve de Ja/Nee-mapping in een teller.'],
-    ['niet',"Losse pagina's en menu",'Eén dashboard is één lange pagina. Secties vervangen hier het menu.']
-  ];return `<div class="view"><div><h1>Wat kan in Perses, en wat niet</h1><p class="lede">Daarom bestaat deze pagina: de exporter serveert hem zelf, zodat de volledige huisstijl wel kan. Het Perses-dashboard in de OpenShift-console blijft de officiële weergave.</p></div><div class="tablebox"><table style="min-width:760px"><thead><tr><th>Haalbaar</th><th>In dit ontwerp</th><th>In Perses</th></tr></thead><tbody>${R.map(r=>`<tr><td><span class="tag t-${r[0]}">${{kan:'Kan',deels:'Deels',niet:'Kan niet'}[r[0]]}</span></td><td><strong>${r[1]}</strong></td><td>${r[2]}</td></tr>`).join('')}</tbody></table></div></div>`}
+    ['kan',tr('Colours from this house style','Kleuren uit deze huisstijl'),tr('Thresholds and colorMode on the counters, cellSettings in tables, fixed line colour on the chart.','Thresholds en colorMode op de tellers, cellSettings in tabellen, vaste lijnkleur op de grafiek.')],
+    ['kan',tr('Score ring','Scorering'),tr('GaugeChart with thresholds and max 100. Perses picks the shape.','GaugeChart met thresholds en max 100. De vorm kiest Perses.')],
+    ['kan',tr('Logo and name at the top','Logo en naam bovenaan'),tr('Markdown panel. DOMPurify lets images through and the console allows data: images (img-src). Not seen in the console.','Markdown-paneel. DOMPurify laat afbeeldingen door en de console staat data:-afbeeldingen toe (img-src). Niet in de console gezien.')],
+    ['kan',tr('Sections','Secties'),tr('Grid layouts with a title, collapsible. Platform metrics start collapsed.','Grid-layouts met titel, inklapbaar. Platform-metrics starten ingeklapt.')],
+    ['kan',tr('Deprecated APIs as a table',"Verouderde API's als tabel"),tr('Panel type Table with the same query.','Paneelsoort Table met dezelfde query.')],
+    ['deels',tr('Green block at the top','Groen vlak bovenaan'),tr('Inline style in the Markdown panel can give a block and rounded corners, but its text is fixed: it cannot change colour with the score.','Inline style in het Markdown-paneel kan een vlak en ronde hoeken geven, maar de tekst erin is vast: het kan niet meekleuren met de score.')],
+    ['deels',tr('Long texts','Lange teksten'),tr('defaultColumnHeight: auto on the table. Effect not seen in the console.','defaultColumnHeight: auto op de tabel. Effect niet in de console gezien.')],
+    ['deels',tr('Text on filled blocks','Tekst op gevulde vlakken'),tr('Perses picks black or white by contrast.','Perses kiest zelf zwart of wit op contrast.')],
+    ['deels',tr('Bars per category','Balken per categorie'),tr('BarChart has no colour option. The colour comes from the console theme.','BarChart heeft geen kleuroptie. Kleur komt uit het console-thema.')],
+    ['deels',tr('Sorting by severity','Sortering op ernst'),tr('Only alphabetically on the raw value: blocker, info, warning.','Alleen alfabetisch op de ruwe waarde: blocker, info, warning.')],
+    ['deels',tr('Light and dark','Licht en donker'),tr('Follows the console theme. Chosen colours are the same in both modes.','Volgt het console-thema. Gekozen kleuren zijn in beide modi gelijk.')],
+    ['niet',tr('KPN Extended typeface','Lettertype KPN Extended'),tr('The console only loads its own typeface. A panel cannot add @font-face.','De console laadt alleen zijn eigen lettertype. Een paneel kan geen @font-face toevoegen.')],
+    ['niet',tr('Animations','Animaties'),tr('No dot-to-line, sliding indicator or counting score: that takes custom CSS or JavaScript.','Geen stip-naar-lijn, schuivende indicator of optellende score: dat vraagt eigen CSS of JavaScript.')],
+    ['niet',tr('Hero with buttons that changes colour','Hero met knoppen die meekleurt'),tr('A panel cannot choose text based on a metric, except the Yes/No mapping in a counter.','Een paneel kan geen tekst kiezen op basis van een metric, behalve de Ja/Nee-mapping in een teller.')],
+    ['niet',tr('Separate pages and menu',"Losse pagina's en menu"),tr('One dashboard is one long page. Sections replace the menu here.','Eén dashboard is één lange pagina. Secties vervangen hier het menu.')]
+  ];return `<div class="view"><div><h1>${tr('What Perses can and cannot do','Wat kan in Perses, en wat niet')}</h1><p class="lede">${tr('That is why this page exists: the exporter serves it itself, so the full house style is possible. The Perses dashboard in the OpenShift console remains the official view.','Daarom bestaat deze pagina: de exporter serveert hem zelf, zodat de volledige huisstijl wel kan. Het Perses-dashboard in de OpenShift-console blijft de officiële weergave.')}</p></div><div class="tablebox"><table style="min-width:760px"><thead><tr><th>${tr('Feasible','Haalbaar')}</th><th>${tr('In this design','In dit ontwerp')}</th><th>${tr('In Perses','In Perses')}</th></tr></thead><tbody>${R.map(r=>`<tr><td><span class="tag t-${r[0]}">${{kan:tr('Can','Kan'),deels:tr('Partly','Deels'),niet:tr('Cannot','Kan niet')}[r[0]]}</span></td><td><strong>${r[1]}</strong></td><td>${r[2]}</td></tr>`).join('')}</tbody></table></div></div>`}
 };
 const RAW='https://raw.githubusercontent.com/JappertjeV/ClusterBusters/main/';
-const DEMO=[
-  {step:'Beginstand',cmd:'',txt:d=>`Zonder demo: score ${d.base}. Dit is wat je bij Overzicht ziet voordat je begint.`},
-  {step:'Demo kapot',cmd:`oc apply -f ${RAW}testcases/demo-kapot.yaml`,txt:d=>`1 blocker (PDB) en 2 warnings (PDB zonder pods, losse pod): ${d.base} − 25 − 5 − 5 = ${d.kapot}${d.base<35?' (de score gaat niet onder 0)':''}.`},
-  {step:'PDB gefixt',cmd:'oc patch pdb demo-app -n clusterbusters-demo --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"',txt:d=>`De blocker is weg, de 2 warnings blijven: score ${d.gefixt}.`},
-  {step:'Opgeruimd',cmd:'oc delete namespace clusterbusters-demo',txt:d=>`Alles weg: terug naar ${d.base}.`}
+const demoSteps=()=>[
+  {step:tr('Baseline','Beginstand'),cmd:'',txt:d=>tr(`Without the demo: score ${d.base}. This is what you see under Overview before you start.`,`Zonder demo: score ${d.base}. Dit is wat je bij Overzicht ziet voordat je begint.`)},
+  {step:tr('Demo broken','Demo kapot'),cmd:`oc apply -f ${RAW}testcases/demo-kapot.yaml`,txt:d=>tr(`1 blocker (PDB) and 2 warnings (PDB without pods, standalone pod): ${d.base} − 25 − 5 − 5 = ${d.kapot}${d.base<35?' (the score does not go below 0)':''}.`,`1 blocker (PDB) en 2 warnings (PDB zonder pods, losse pod): ${d.base} − 25 − 5 − 5 = ${d.kapot}${d.base<35?' (de score gaat niet onder 0)':''}.`)},
+  {step:tr('PDB fixed','PDB gefixt'),cmd:'oc patch pdb demo-app -n clusterbusters-demo --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"',txt:d=>tr(`The blocker is gone, the 2 warnings remain: score ${d.gefixt}.`,`De blocker is weg, de 2 warnings blijven: score ${d.gefixt}.`)},
+  {step:tr('Cleaned up','Opgeruimd'),cmd:'oc delete namespace clusterbusters-demo',txt:d=>tr(`Everything gone: back to ${d.base}.`,`Alles weg: terug naar ${d.base}.`)}
 ];
 // Scores van de demo, gerekend vanaf de live stand zonder de bevindingen van de demo zelf.
 function demoScores(){const live=!!(D&&D.scanned);let b=0,w=0,active=false;
@@ -295,31 +305,33 @@ function demoScores(){const live=!!(D&&D.scanned);let b=0,w=0,active=false;
   const base=Math.max(0,100-25*b-5*w);return {live,active,base,kapot:Math.max(0,base-35),gefixt:Math.max(0,base-10)}}
 
 const app=document.getElementById('app'),menu=document.getElementById('menu'),meta=document.getElementById('meta');
-menu.innerHTML=PAGES.map(([id,l])=>`<a href="#${id}" data-p="${id}">${l}</a>`).join('');
+function renderMenu(){menu.innerHTML=PAGES.map(([id,l])=>`<a href="#${id}" data-p="${id}">${l()}</a>`).join('')}
+renderMenu();
 function bindSeg(id,fn){const el=document.getElementById(id);if(!el)return;placeSeg(el);el.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const prev=el.querySelector('[aria-pressed="true"]')?.dataset.v;el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));placeSeg(el);fn(b.dataset.v,prev)})}
-function demoStep(k){const s=DEMO[+k],d=demoScores(),c=document.getElementById('cmd'),b=document.getElementById('copy');
-  c.textContent=s.cmd||'Geen commando: kijk eerst bij Overzicht hoe het cluster ervoor staat.';b.hidden=!s.cmd;b.textContent='Kopieer';
-  b.onclick=()=>{const done=()=>{b.textContent='Gekopieerd'};
+function demoStep(k){const s=demoSteps()[+k],d=demoScores(),c=document.getElementById('cmd'),b=document.getElementById('copy');
+  c.textContent=s.cmd||tr('No command: first check under Overview how the cluster is doing.','Geen commando: kijk eerst bij Overzicht hoe het cluster ervoor staat.');b.hidden=!s.cmd;b.textContent=tr('Copy','Kopieer');
+  b.onclick=()=>{const done=()=>{b.textContent=tr('Copied','Gekopieerd')};
     // navigator.clipboard werkt alleen via https of localhost; anders de tekst selecteren.
     if(navigator.clipboard)navigator.clipboard.writeText(s.cmd).then(done,()=>selectCmd(c));else selectCmd(c)};
   document.getElementById('demotxt').textContent=s.txt(d)}
 function selectCmd(el){const r=document.createRange();r.selectNodeContents(el);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}
 
 // render: bij navigeren naar boven scrollen, bij een live verversing de scrollpositie houden.
-function render(nav){const p=PAGES.some(x=>x[0]===location.hash.slice(1))?location.hash.slice(1):'overzicht';
+function render(nav,force){const p=PAGES.some(x=>x[0]===location.hash.slice(1))?location.hash.slice(1):'overzicht';
   menu.querySelectorAll('a').forEach(a=>a.dataset.p===p?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
-  if(!nav&&!LIVE.has(p)&&!(p==='demo'&&current!=='demo-live'&&D&&D.scanned))return;
+  if(!nav&&!force&&!LIVE.has(p)&&!(p==='demo'&&current!=='demo-live'&&D&&D.scanned))return;
+  if(nav)demoK='1';
   const y=scrollY;
   app.innerHTML=LIVE.has(p)&&!(D&&D.scanned)?waiting():V[p]();
-  if(p==='overzicht'&&D&&D.scanned){animateRing('r0',nav?0:lastScore,D.score)}
-  if(p==='demo'){const d=demoScores();animateRing('rv',0,d.kapot);animateRing('rn',0,d.gefixt);demoStep('1');bindSeg('st',k=>demoStep(k))}
+  if(p==='overzicht'&&D&&D.scanned){animateRing('r0',nav?0:force?D.score:lastScore,D.score)}
+  if(p==='demo'){const d=demoScores();animateRing('rv',0,d.kapot);animateRing('rn',0,d.gefixt);demoStep(demoK);bindSeg('st',k=>{demoK=k;demoStep(k)})}
   if(p==='fixen')bindSeg('fx',k=>{fxFilter=k;document.getElementById('fxt').innerHTML=fixTable()});
   current=p==='demo'&&D&&D.scanned?'demo-live':p;
   if(nav)window.scrollTo(0,0);else window.scrollTo(0,y)}
 
-function renderMeta(){if(offline){meta.textContent='geen verbinding met de exporter';return}
-  if(!D||!D.scanned){meta.textContent='clusterbusters · eerste scan loopt';return}
-  meta.innerHTML=`<span class="live">clusterbusters · OpenShift ${esc(D.currentVersion||'onbekend')}${D.targetVersion?` → ${esc(D.targetVersion)}`:''} · live</span>`}
+function renderMeta(){if(offline){meta.textContent=tr('no connection to the exporter','geen verbinding met de exporter');return}
+  if(!D||!D.scanned){meta.textContent=tr('clusterbusters · first scan running','clusterbusters · eerste scan loopt');return}
+  meta.innerHTML=`<span class="live">clusterbusters · OpenShift ${esc(D.currentVersion||tr('unknown','onbekend'))}${D.targetVersion?` → ${esc(D.targetVersion)}`:''} · live</span>`}
 
 async function load(){
   try{const r=await fetch('api/status',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);
@@ -341,8 +353,19 @@ function setTheme(v){document.documentElement.dataset.theme=v;th.querySelectorAl
 let saved=null;try{saved=localStorage.getItem('cb-theme')}catch(e){}
 setTheme(saved||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
 th.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;setTheme(b.dataset.v);try{localStorage.setItem('cb-theme',b.dataset.v)}catch(e){}});
+// Taalknop: alles opnieuw tekenen zonder te scrollen. Ook de vaste teksten buiten #app horen daarbij.
+const lg=document.getElementById('lang');
+function applyLang(){document.documentElement.lang=lang;
+  lg.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===lang));
+  th.setAttribute('aria-label',tr('Display','Weergave'));lg.setAttribute('aria-label',tr('Language','Taal'));menu.setAttribute('aria-label',tr('Pages',"Pagina's"));
+  th.querySelector('[data-v="light"]').textContent=tr('Light','Licht');th.querySelector('[data-v="dark"]').textContent=tr('Dark','Donker');
+  document.getElementById('foot').textContent=tr('Design for the KPN hackathon, not a KPN product. Live data from the upgrade-readiness exporter; the Demo page calculates from the current state of the cluster. Colours and typeface come from the public KPN tokens, the illustrations are our own drawings.','Ontwerp voor de KPN-hackathon, geen KPN-product. Live data uit de upgrade-readiness-exporter; de pagina Demo rekent vanaf de huidige stand van het cluster. Kleuren en lettertype komen uit de openbare KPN-tokens, de illustraties zijn eigen tekeningen.');
+  renderMenu();placeSeg(th);placeSeg(lg)}
+lg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.dataset.v===lang)return;lang=b.dataset.v;try{localStorage.setItem('cb-lang',lang)}catch(e){}
+  applyLang();render(false,true);renderMeta()});
+applyLang();
 render(true);load();setInterval(load,REFRESH_MS);
-document.fonts?.ready.then(()=>{placeSeg(th);document.querySelectorAll('#app .seg').forEach(placeSeg)});
+document.fonts?.ready.then(()=>{placeSeg(th);placeSeg(lg);document.querySelectorAll('#app .seg').forEach(placeSeg)});
 </script>
 </body>
 </html>

@@ -98,7 +98,7 @@ Regels:
   `apiserver_requested_deprecated_apis`) zijn platform-metrics. Die werken alleen met route A. Zodra de
   scanner draait, moet het dashboard over op `upgrade_readiness_*`:
   - Stat: `upgrade_readiness_score`, `sum(upgrade_readiness_findings{severity="blocker"})`
-  - Table "Wat moet er gefixt worden": `upgrade_readiness_finding == 1` (kolommen severity, resource, title, fix)
+  - Table "What needs fixing": `upgrade_readiness_finding == 1` (kolommen severity, resource, title, fix)
   - Time series: `upgrade_readiness_score` (in de demo zie je de score stijgen terwijl je fixt)
 
 ## Go-scanner (map `exporter/`, zie `exporter/README.md`)
@@ -112,6 +112,9 @@ Regels:
 - Eén falende check mag de scan niet stoppen. Zet dan `check_up{check}=0` en ga door met de rest.
 - Een Python-referentie-implementatie bestaat (upgrade-readiness.zip, buiten de repo), met dezelfde checks
   en Nederlandse uitleg- en fix-teksten. Port de logica en teksten één-op-één.
+- Taal: `title` en `fix` in de metrics zijn Engels, omdat Perses geen taalkeuze kent. De Nederlandse tekst
+  staat alleen in `/api/status` (`titleNl`, `fixNl`) voor de EN/NL-knop op de KPN-pagina. Geef een nieuwe
+  bevinding dus beide talen.
 
 ### Checks (GVR → wanneer blocker / warning)
 | check | GVR | Logica |

@@ -231,6 +231,13 @@ func TestBrokenPlatform(t *testing.T) {
 			!strings.Contains(f.Fix, "bob, alice") {
 			t.Errorf("topgebruikers niet in fix: %q", f.Fix)
 		}
+		// De taalknop op de webpagina heeft van elke bevinding beide talen nodig.
+		if f.Title == "" || f.Fix == "" || f.TitleNL == "" || f.FixNL == "" {
+			t.Errorf("%s: tekst ontbreekt in een taal: %+v", f.Resource, f)
+		}
+		if f.Title == f.TitleNL && f.Fix == f.FixNL {
+			t.Errorf("%s: Engels en Nederlands zijn gelijk: %q", f.Resource, f.Fix)
+		}
 	}
 	if res.Score != 0 || res.Ready {
 		t.Errorf("score=%d ready=%v", res.Score, res.Ready)
@@ -294,11 +301,22 @@ func TestMetricsOutput(t *testing.T) {
 		`upgrade_readiness_check_up{check="pdb"} 1`,
 		`upgrade_readiness_check_up{check="olm"} 0`,
 		"upgrade_readiness_last_scan_timestamp_seconds",
-		`upgrade_readiness_version_info{current_version="onbekend",target_version="onbekend"} 1`,
+		`upgrade_readiness_version_info{current_version="unknown",target_version="unknown"} 1`,
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("ontbreekt in /metrics: %s", want)
 		}
+	}
+}
+
+// De Nederlandse tekst staat niet in de labels. Twee bevindingen die alleen daarin verschillen,
+// zouden anders dezelfde labels houden en de scrape laten falen.
+func TestDedupeIgnoresDutchText(t *testing.T) {
+	a := Finding{Check: "pdb", Severity: Warning, Resource: "x", Title: "t", Fix: "f", TitleNL: "een"}
+	b := a
+	b.TitleNL = "twee"
+	if got := dedupe([]Finding{a, b}); len(got) != 1 {
+		t.Errorf("verwacht 1 bevinding, kreeg %+v", got)
 	}
 }
 
@@ -394,17 +412,25 @@ func TestFixCommandsAreShellSafe(t *testing.T) {
 	_ = unstructured.SetNestedSlice(cv.Object, list, "status", "conditions")
 
 	res := newScanner(t, objs...).Scan(context.Background())
-	patches := 0
+	patches, patchesNL := 0, 0
+	hasPatch := func(fix string) bool {
+		return strings.Contains(fix, "oc patch") || strings.Contains(fix, "patch cm") || strings.Contains(fix, "patch installplan")
+	}
 	for _, f := range res.Findings {
-		if strings.Contains(f.Fix, "'{") || strings.Contains(f.Fix, `\"`) || strings.Contains(f.Fix, "…") {
-			t.Errorf("%s: fix niet shell-veilig of afgekapt: %s", f.Resource, f.Fix)
+		for _, fix := range []string{f.Fix, f.FixNL} {
+			if strings.Contains(fix, "'{") || strings.Contains(fix, `\"`) || strings.Contains(fix, "…") {
+				t.Errorf("%s: fix niet shell-veilig of afgekapt: %s", f.Resource, fix)
+			}
 		}
-		if strings.Contains(f.Fix, "oc patch") || strings.Contains(f.Fix, "patch cm") || strings.Contains(f.Fix, "patch installplan") {
+		if hasPatch(f.Fix) {
 			patches++
 		}
+		if hasPatch(f.FixNL) {
+			patchesNL++
+		}
 	}
-	if patches != 5 {
-		t.Errorf("verwacht 5 patch-commando's, kreeg %d", patches)
+	if patches != 5 || patchesNL != 5 {
+		t.Errorf("verwacht 5 patch-commando's per taal, kreeg %d en %d", patches, patchesNL)
 	}
 	for _, f := range res.Findings {
 		switch f.Resource {

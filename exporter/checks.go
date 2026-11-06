@@ -96,24 +96,32 @@ func checkClusterVersion(ctx context.Context, s *Scanner) ([]Finding, error) {
 
 	if c := conds["Failing"]; c.Status == "True" {
 		out = append(out, Finding{Severity: Blocker, Resource: res,
-			Title: withMessage("Cluster-versie staat op Failing", c),
-			Fix:   "Los eerst de huidige fout op: zie `oc adm upgrade` en `oc get clusterversion version -o yaml`."})
+			Title:   withMessage("Cluster version is Failing", c),
+			Fix:     "Resolve the current error first: see `oc adm upgrade` and `oc get clusterversion version -o yaml`.",
+			TitleNL: withMessage("Cluster-versie staat op Failing", c),
+			FixNL:   "Los eerst de huidige fout op: zie `oc adm upgrade` en `oc get clusterversion version -o yaml`."})
 	}
 	if c := conds["Upgradeable"]; c.Status == "False" {
 		out = append(out, Finding{Severity: Blocker, Resource: res,
-			Title: withMessage("Cluster is niet upgradeable", c),
-			Fix:   "Los de oorzaak uit de Upgradeable-condition op. Meestal is dat een Operator met Upgradeable=False, zie de operators-bevindingen."})
+			Title:   withMessage("Cluster is not upgradeable", c),
+			Fix:     "Resolve the cause in the Upgradeable condition. This is usually an Operator with Upgradeable=False; see the operators findings.",
+			TitleNL: withMessage("Cluster is niet upgradeable", c),
+			FixNL:   "Los de oorzaak uit de Upgradeable-condition op. Meestal is dat een Operator met Upgradeable=False, zie de operators-bevindingen."})
 	}
 	if c := conds["Progressing"]; c.Status == "True" {
 		out = append(out, Finding{Severity: Warning, Resource: res,
-			Title: withMessage("Er loopt al een update", c),
-			Fix:   "Wacht tot de lopende update klaar is voordat je een nieuwe start."})
+			Title:   withMessage("An update is already in progress", c),
+			Fix:     "Wait until the running update has finished before you start a new one.",
+			TitleNL: withMessage("Er loopt al een update", c),
+			FixNL:   "Wacht tot de lopende update klaar is voordat je een nieuwe start."})
 	}
 	// Info en geen warning: op een afgeschermd cluster staat dit altijd op False.
 	if c := conds["RetrievedUpdates"]; c.Status == "False" {
 		out = append(out, Finding{Severity: Info, Resource: res,
-			Title: withMessage("Cluster kan geen beschikbare updates ophalen", c),
-			Fix:   "Stel een update-channel in (" + channelCommand(s.current) + ") en controleer of de update-service bereikbaar is. Zonder dit ziet het cluster geen updates."})
+			Title:   withMessage("Cluster cannot retrieve available updates", c),
+			Fix:     "Set an update channel (" + channelCommand(s.current) + ") and check that the update service is reachable. Without this, the cluster sees no updates.",
+			TitleNL: withMessage("Cluster kan geen beschikbare updates ophalen", c),
+			FixNL:   "Stel een update-channel in (" + channelCommand(s.current) + ") en controleer of de update-service bereikbaar is. Zonder dit ziet het cluster geen updates."})
 	}
 
 	// Bekende risico's van beschikbare updates.
@@ -132,13 +140,17 @@ func checkClusterVersion(ctx context.Context, s *Scanner) ([]Finding, error) {
 			seenRisk[name] = true
 			url, _ := rm["url"].(string)
 			msg, _ := rm["message"].(string)
-			fix := "Beoordeel of dit risico voor dit cluster geldt voordat je naar " + version + " gaat."
+			fix := "Assess whether this risk applies to this cluster before you move to " + version + "."
+			fixNL := "Beoordeel of dit risico voor dit cluster geldt voordat je naar " + version + " gaat."
 			if url != "" {
-				fix += " Zie " + url
+				fix += " See " + url
+				fixNL += " Zie " + url
 			}
 			out = append(out, Finding{Severity: Info, Resource: res,
-				Title: clip(fmt.Sprintf("Bekend risico %s voor update naar %s: %s", name, version, msg)),
-				Fix:   clip(fix)})
+				Title:   clip(fmt.Sprintf("Known risk %s for update to %s: %s", name, version, msg)),
+				Fix:     clip(fix),
+				TitleNL: clip(fmt.Sprintf("Bekend risico %s voor update naar %s: %s", name, version, msg)),
+				FixNL:   clip(fixNL)})
 		}
 	}
 
@@ -164,8 +176,10 @@ func checkClusterVersion(ctx context.Context, s *Scanner) ([]Finding, error) {
 			continue
 		}
 		out = append(out, Finding{Severity: Warning, Resource: "ConfigMap openshift-config/admin-acks",
-			Title: clip("Admin-gate niet bevestigd: " + key + ": " + gateData[key]),
-			Fix:   clip(fmt.Sprintf(`Lees de gate, los op wat erin staat en bevestig: oc -n openshift-config patch cm admin-acks --type=merge -p "data: {%s: 'true'}"`, key))})
+			Title:   clip("Admin gate not acknowledged: " + key + ": " + gateData[key]),
+			Fix:     clip(fmt.Sprintf(`Read the gate, resolve what it says and acknowledge it: oc -n openshift-config patch cm admin-acks --type=merge -p "data: {%s: 'true'}"`, key)),
+			TitleNL: clip("Admin-gate niet bevestigd: " + key + ": " + gateData[key]),
+			FixNL:   clip(fmt.Sprintf(`Lees de gate, los op wat erin staat en bevestig: oc -n openshift-config patch cm admin-acks --type=merge -p "data: {%s: 'true'}"`, key))})
 	}
 	return out, nil
 }
@@ -190,20 +204,26 @@ func checkOperators(ctx context.Context, s *Scanner) ([]Finding, error) {
 	for _, co := range list.Items {
 		name := co.GetName()
 		res := "ClusterOperator " + name
-		fix := fmt.Sprintf("Bekijk `oc get co %s -o yaml` en de pods van deze Operator; los de oorzaak op voordat je upgradet.", name)
+		fix := fmt.Sprintf("Check `oc get co %s -o yaml` and the pods of this Operator; resolve the cause before you upgrade.", name)
+		fixNL := fmt.Sprintf("Bekijk `oc get co %s -o yaml` en de pods van deze Operator; los de oorzaak op voordat je upgradet.", name)
 		conds := conditions(co.Object)
 		if c := conds["Available"]; c.Status != "True" {
-			out = append(out, Finding{Severity: Blocker, Resource: res, Title: withMessage("Operator is niet Available", c), Fix: fix})
+			out = append(out, Finding{Severity: Blocker, Resource: res, Title: withMessage("Operator is not Available", c), Fix: fix,
+				TitleNL: withMessage("Operator is niet Available", c), FixNL: fixNL})
 		}
 		if c := conds["Degraded"]; c.Status == "True" {
-			out = append(out, Finding{Severity: Blocker, Resource: res, Title: withMessage("Operator is Degraded", c), Fix: fix})
+			out = append(out, Finding{Severity: Blocker, Resource: res, Title: withMessage("Operator is Degraded", c), Fix: fix,
+				TitleNL: withMessage("Operator is Degraded", c), FixNL: fixNL})
 		}
 		if c := conds["Upgradeable"]; c.Status == "False" {
-			out = append(out, Finding{Severity: Blocker, Resource: res, Title: withMessage("Operator blokkeert upgrades (Upgradeable=False)", c), Fix: fix})
+			out = append(out, Finding{Severity: Blocker, Resource: res, Title: withMessage("Operator blocks upgrades (Upgradeable=False)", c), Fix: fix,
+				TitleNL: withMessage("Operator blokkeert upgrades (Upgradeable=False)", c), FixNL: fixNL})
 		}
 		if c := conds["Progressing"]; c.Status == "True" {
-			out = append(out, Finding{Severity: Warning, Resource: res, Title: withMessage("Operator is nog bezig (Progressing)", c),
-				Fix: "Wacht tot de Operator klaar is met uitrollen."})
+			out = append(out, Finding{Severity: Warning, Resource: res, Title: withMessage("Operator is still rolling out (Progressing)", c),
+				Fix:     "Wait until the Operator has finished rolling out.",
+				TitleNL: withMessage("Operator is nog bezig (Progressing)", c),
+				FixNL:   "Wacht tot de Operator klaar is met uitrollen."})
 		}
 	}
 	return out, nil
@@ -227,8 +247,10 @@ func checkOLM(ctx context.Context, s *Scanner) ([]Finding, error) {
 		if phase != "Succeeded" {
 			msg, _, _ := unstructured.NestedString(csv.Object, "status", "message")
 			out = append(out, Finding{Severity: Blocker, Resource: res,
-				Title: withMessage("Operator-installatie staat op phase "+orUnknown(phase), condition{Message: msg}),
-				Fix:   fmt.Sprintf("Bekijk `oc -n %s get csv %s -o yaml` en de InstallPlan; herstel of herinstalleer de Operator.", csv.GetNamespace(), csv.GetName())})
+				Title:   withMessage("Operator installation is in phase "+orUnknown(phase), condition{Message: msg}),
+				Fix:     fmt.Sprintf("Check `oc -n %s get csv %s -o yaml` and the InstallPlan; repair or reinstall the Operator.", csv.GetNamespace(), csv.GetName()),
+				TitleNL: withMessage("Operator-installatie staat op phase "+orUnknownNL(phase), condition{Message: msg}),
+				FixNL:   fmt.Sprintf("Bekijk `oc -n %s get csv %s -o yaml` en de InstallPlan; herstel of herinstalleer de Operator.", csv.GetNamespace(), csv.GetName())})
 		}
 		if s.target == nil {
 			continue
@@ -236,8 +258,10 @@ func checkOLM(ctx context.Context, s *Scanner) ([]Finding, error) {
 		maxV, ok := maxOpenShiftVersion(csv.GetAnnotations()["operatorframework.io/properties"])
 		if ok && maxV.Less(*s.target) {
 			out = append(out, Finding{Severity: Blocker, Resource: res,
-				Title: fmt.Sprintf("Operator ondersteunt maximaal OpenShift %s, doel is %s", maxV, s.target),
-				Fix:   "Update deze Operator naar een versie die " + s.target.String() + " ondersteunt (wissel zo nodig van channel), of verwijder hem."})
+				Title:   fmt.Sprintf("Operator supports at most OpenShift %s, target is %s", maxV, s.target),
+				Fix:     "Update this Operator to a version that supports " + s.target.String() + " (switch channel if needed), or remove it.",
+				TitleNL: fmt.Sprintf("Operator ondersteunt maximaal OpenShift %s, doel is %s", maxV, s.target),
+				FixNL:   "Update deze Operator naar een versie die " + s.target.String() + " ondersteunt (wissel zo nodig van channel), of verwijder hem."})
 		}
 	}
 
@@ -269,18 +293,24 @@ func subscriptionFindings(ctx context.Context, s *Scanner) ([]Finding, error) {
 		conds := conditions(sub.Object)
 		if c := conds["ResolutionFailed"]; c.Status == "True" {
 			out = append(out, Finding{Severity: Warning, Resource: res,
-				Title: withMessage("Operator-update kan niet worden opgelost (ResolutionFailed)", c),
-				Fix:   fmt.Sprintf("Controleer package, channel en CatalogSource van deze Subscription (`oc -n %s get sub %s -o yaml`). Zolang dit faalt krijgt de Operator geen updates.", ns, name)})
+				Title:   withMessage("Operator update cannot be resolved (ResolutionFailed)", c),
+				Fix:     fmt.Sprintf("Check the package, channel and CatalogSource of this Subscription (`oc -n %s get sub %s -o yaml`). As long as this fails, the Operator gets no updates.", ns, name),
+				TitleNL: withMessage("Operator-update kan niet worden opgelost (ResolutionFailed)", c),
+				FixNL:   fmt.Sprintf("Controleer package, channel en CatalogSource van deze Subscription (`oc -n %s get sub %s -o yaml`). Zolang dit faalt krijgt de Operator geen updates.", ns, name)})
 		}
 		if c := conds["CatalogSourcesUnhealthy"]; c.Status == "True" {
 			out = append(out, Finding{Severity: Warning, Resource: res,
-				Title: withMessage("CatalogSource van deze Operator is niet gezond", c),
-				Fix:   "Bekijk `oc get catalogsource -n openshift-marketplace` en de pods daar; zonder catalogus komen er geen Operator-updates binnen."})
+				Title:   withMessage("CatalogSource of this Operator is unhealthy", c),
+				Fix:     "Check `oc get catalogsource -n openshift-marketplace` and the pods there; without a catalog, no Operator updates come in.",
+				TitleNL: withMessage("CatalogSource van deze Operator is niet gezond", c),
+				FixNL:   "Bekijk `oc get catalogsource -n openshift-marketplace` en de pods daar; zonder catalogus komen er geen Operator-updates binnen."})
 		}
 		if c := conds["InstallPlanFailed"]; c.Status == "True" {
 			out = append(out, Finding{Severity: Blocker, Resource: res,
-				Title: withMessage("Installatie van de Operator-update is mislukt", c),
-				Fix:   fmt.Sprintf("Bekijk de InstallPlan in namespace %s (`oc -n %s get installplan`) en verwijder of herstel hem.", ns, ns)})
+				Title:   withMessage("Installation of the Operator update failed", c),
+				Fix:     fmt.Sprintf("Check the InstallPlan in namespace %s (`oc -n %s get installplan`) and remove or repair it.", ns, ns),
+				TitleNL: withMessage("Installatie van de Operator-update is mislukt", c),
+				FixNL:   fmt.Sprintf("Bekijk de InstallPlan in namespace %s (`oc -n %s get installplan`) en verwijder of herstel hem.", ns, ns)})
 		}
 	}
 	return out, nil
@@ -302,13 +332,22 @@ func installPlanFindings(ctx context.Context, s *Scanner) ([]Finding, error) {
 		ns, name := ip.GetNamespace(), ip.GetName()
 		csvs, _, _ := unstructured.NestedStringSlice(ip.Object, "spec", "clusterServiceVersionNames")
 		out = append(out, Finding{Severity: Warning, Resource: fmt.Sprintf("InstallPlan %s/%s", ns, name),
-			Title: clip("Operator-update wacht op handmatige goedkeuring: " + strings.Join(csvs, ", ")),
-			Fix:   clip(fmt.Sprintf(`Werk Operators bij vóór de cluster-upgrade. Keur goed in de console (Operators → Installed Operators) of met: oc -n %s patch installplan %s --type=merge -p "spec: {approved: true}"`, ns, name))})
+			Title:   clip("Operator update is waiting for manual approval: " + strings.Join(csvs, ", ")),
+			Fix:     clip(fmt.Sprintf(`Update Operators before the cluster upgrade. Approve in the console (Operators → Installed Operators) or with: oc -n %s patch installplan %s --type=merge -p "spec: {approved: true}"`, ns, name)),
+			TitleNL: clip("Operator-update wacht op handmatige goedkeuring: " + strings.Join(csvs, ", ")),
+			FixNL:   clip(fmt.Sprintf(`Werk Operators bij vóór de cluster-upgrade. Keur goed in de console (Operators → Installed Operators) of met: oc -n %s patch installplan %s --type=merge -p "spec: {approved: true}"`, ns, name))})
 	}
 	return out, nil
 }
 
 func orUnknown(s string) string {
+	if s == "" {
+		return "unknown"
+	}
+	return s
+}
+
+func orUnknownNL(s string) string {
 	if s == "" {
 		return "onbekend"
 	}
@@ -358,18 +397,24 @@ func checkNodes(ctx context.Context, s *Scanner) ([]Finding, error) {
 		res := "Node " + name
 		conds := conditions(n.Object)
 		if c := conds["Ready"]; c.Status != "True" {
-			out = append(out, Finding{Severity: Blocker, Resource: res, Title: withMessage("Node is niet Ready", c),
-				Fix: fmt.Sprintf("Onderzoek de node met `oc describe node %s` en `oc adm node-logs %s -u kubelet`.", name, name)})
+			out = append(out, Finding{Severity: Blocker, Resource: res, Title: withMessage("Node is not Ready", c),
+				Fix:     fmt.Sprintf("Investigate the node with `oc describe node %s` and `oc adm node-logs %s -u kubelet`.", name, name),
+				TitleNL: withMessage("Node is niet Ready", c),
+				FixNL:   fmt.Sprintf("Onderzoek de node met `oc describe node %s` en `oc adm node-logs %s -u kubelet`.", name, name)})
 		}
 		for _, p := range []string{"MemoryPressure", "DiskPressure", "PIDPressure"} {
 			if c := conds[p]; c.Status == "True" {
-				out = append(out, Finding{Severity: Warning, Resource: res, Title: withMessage("Node heeft "+p, c),
-					Fix: "Maak ruimte vrij of verplaats workloads; een drain tijdens de upgrade kan anders vastlopen."})
+				out = append(out, Finding{Severity: Warning, Resource: res, Title: withMessage("Node has "+p, c),
+					Fix:     "Free up resources or move workloads; otherwise a drain during the upgrade can get stuck.",
+					TitleNL: withMessage("Node heeft "+p, c),
+					FixNL:   "Maak ruimte vrij of verplaats workloads; een drain tijdens de upgrade kan anders vastlopen."})
 			}
 		}
 		if u, _, _ := unstructured.NestedBool(n.Object, "spec", "unschedulable"); u {
-			out = append(out, Finding{Severity: Warning, Resource: res, Title: "Node staat op unschedulable (cordoned)",
-				Fix: fmt.Sprintf("Zet hem terug met `oc adm uncordon %s` als het onderhoud klaar is.", name)})
+			out = append(out, Finding{Severity: Warning, Resource: res, Title: "Node is unschedulable (cordoned)",
+				Fix:     fmt.Sprintf("Bring it back with `oc adm uncordon %s` when maintenance is done.", name),
+				TitleNL: "Node staat op unschedulable (cordoned)",
+				FixNL:   fmt.Sprintf("Zet hem terug met `oc adm uncordon %s` als het onderhoud klaar is.", name)})
 		}
 	}
 
@@ -383,15 +428,21 @@ func checkNodes(ctx context.Context, s *Scanner) ([]Finding, error) {
 		conds := conditions(p.Object)
 		if c := conds["Degraded"]; c.Status == "True" {
 			out = append(out, Finding{Severity: Blocker, Resource: res, Title: withMessage("MachineConfigPool is Degraded", c),
-				Fix: fmt.Sprintf("Bekijk `oc get mcp %s -o yaml` en de logs van machine-config-daemon op de betrokken node.", name)})
+				Fix:     fmt.Sprintf("Check `oc get mcp %s -o yaml` and the machine-config-daemon logs on the affected node.", name),
+				TitleNL: withMessage("MachineConfigPool is Degraded", c),
+				FixNL:   fmt.Sprintf("Bekijk `oc get mcp %s -o yaml` en de logs van machine-config-daemon op de betrokken node.", name)})
 		}
 		if paused, _, _ := unstructured.NestedBool(p.Object, "spec", "paused"); paused {
-			out = append(out, Finding{Severity: Warning, Resource: res, Title: "MachineConfigPool staat op paused",
-				Fix: fmt.Sprintf(`Nodes in deze pool krijgen de upgrade niet. Zet hem aan met: oc patch mcp %s --type=merge -p "spec: {paused: false}"`, name)})
+			out = append(out, Finding{Severity: Warning, Resource: res, Title: "MachineConfigPool is paused",
+				Fix:     fmt.Sprintf(`Nodes in this pool will not get the upgrade. Resume it with: oc patch mcp %s --type=merge -p "spec: {paused: false}"`, name),
+				TitleNL: "MachineConfigPool staat op paused",
+				FixNL:   fmt.Sprintf(`Nodes in deze pool krijgen de upgrade niet. Zet hem aan met: oc patch mcp %s --type=merge -p "spec: {paused: false}"`, name)})
 		}
 		if c := conds["Updated"]; c.Status != "True" {
-			out = append(out, Finding{Severity: Warning, Resource: res, Title: withMessage("MachineConfigPool is nog niet Updated", c),
-				Fix: "Wacht tot alle nodes in de pool de huidige configuratie hebben voordat je upgradet."})
+			out = append(out, Finding{Severity: Warning, Resource: res, Title: withMessage("MachineConfigPool is not Updated yet", c),
+				Fix:     "Wait until all nodes in the pool have the current configuration before you upgrade.",
+				TitleNL: withMessage("MachineConfigPool is nog niet Updated", c),
+				FixNL:   "Wacht tot alle nodes in de pool de huidige configuratie hebben voordat je upgradet."})
 		}
 	}
 	return out, nil
@@ -416,12 +467,16 @@ func checkPDBs(ctx context.Context, s *Scanner) ([]Finding, error) {
 		allowed, _, _ := unstructured.NestedInt64(pdb.Object, "status", "disruptionsAllowed")
 		switch {
 		case expected == 0:
-			out = append(out, Finding{Severity: Warning, Resource: res, Title: "PDB matcht geen enkele pod",
-				Fix: fmt.Sprintf("Controleer de selector van de PDB, of verwijder hem als de workload niet meer bestaat: oc delete pdb %s -n %s", name, ns)})
+			out = append(out, Finding{Severity: Warning, Resource: res, Title: "PDB does not match any pod",
+				Fix:     fmt.Sprintf("Check the selector of the PDB, or remove it if the workload no longer exists: oc delete pdb %s -n %s", name, ns),
+				TitleNL: "PDB matcht geen enkele pod",
+				FixNL:   fmt.Sprintf("Controleer de selector van de PDB, of verwijder hem als de workload niet meer bestaat: oc delete pdb %s -n %s", name, ns)})
 		case allowed == 0:
 			out = append(out, Finding{Severity: Blocker, Resource: res,
-				Title: fmt.Sprintf("PDB staat 0 disruptions toe (%d pods) en blokkeert node-drain", expected),
-				Fix:   fmt.Sprintf(`Zet maxUnavailable: 1 in de PDB, of schaal de workload op naar meer replicas dan minAvailable. Met: oc patch pdb %s -n %s --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"`, name, ns)})
+				Title:   fmt.Sprintf("PDB allows 0 disruptions (%d pods) and blocks node drain", expected),
+				Fix:     fmt.Sprintf(`Set maxUnavailable: 1 in the PDB, or scale the workload to more replicas than minAvailable. With: oc patch pdb %s -n %s --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"`, name, ns),
+				TitleNL: fmt.Sprintf("PDB staat 0 disruptions toe (%d pods) en blokkeert node-drain", expected),
+				FixNL:   fmt.Sprintf(`Zet maxUnavailable: 1 in de PDB, of schaal de workload op naar meer replicas dan minAvailable. Met: oc patch pdb %s -n %s --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"`, name, ns)})
 		}
 	}
 	return out, nil
@@ -473,13 +528,17 @@ func deprecatedFromRequestCounts(ctx context.Context, s *Scanner) ([]Finding, ma
 		}
 		seen[arc.GetName()] = true
 		ocp := removalInOCP(release)
-		fix := "Migreer naar een nieuwere API-versie voordat je naar OpenShift " + ocp.String() + " gaat."
+		fix := "Migrate to a newer API version before you move to OpenShift " + ocp.String() + "."
+		fixNL := "Migreer naar een nieuwere API-versie voordat je naar OpenShift " + ocp.String() + " gaat."
 		if users := topUsers(arc.Object, 3); len(users) > 0 {
-			fix += " Grootste gebruikers: " + strings.Join(users, ", ") + "."
+			fix += " Top users: " + strings.Join(users, ", ") + "."
+			fixNL += " Grootste gebruikers: " + strings.Join(users, ", ") + "."
 		}
 		out = append(out, Finding{Severity: removalSeverity(s, ocp), Resource: "APIRequestCount " + arc.GetName(),
-			Title: "Deprecated API in gebruik, verdwijnt in " + removalText(release),
-			Fix:   clip(fix)})
+			Title:   "Deprecated API in use, removed in " + removalText(release),
+			Fix:     clip(fix),
+			TitleNL: "Deprecated API in gebruik, verdwijnt in " + removalText(release),
+			FixNL:   clip(fixNL)})
 	}
 	return out, seen, nil
 }
@@ -497,7 +556,10 @@ func deprecatedFromMetrics(ctx context.Context, s *Scanner, seen map[string]bool
 	if err != nil {
 		return nil, err
 	}
-	const findUsers = " Deze bron noemt geen gebruikers: zoek ze in de audit-logs van de API-server."
+	const (
+		findUsers   = " This source does not name users: look for them in the audit logs of the API server."
+		findUsersNL = " Deze bron noemt geen gebruikers: zoek ze in de audit-logs van de API-server."
+	)
 	var out []Finding
 	for _, m := range series {
 		// Zelfde opbouw als de naam van een APIRequestCount: resource.versie.groep, zonder groep bij core.
@@ -510,13 +572,17 @@ func deprecatedFromMetrics(ctx context.Context, s *Scanner, seen map[string]bool
 		}
 		seen[name] = true
 		f := Finding{Severity: Info, Resource: "API " + name,
-			Title: "Deprecated API in gebruik, nog geen verwijderversie bekend",
-			Fix:   clip("Plan de migratie naar een nieuwere API-versie." + findUsers)}
+			Title:   "Deprecated API in use, removal version not known yet",
+			Fix:     clip("Plan the migration to a newer API version." + findUsers),
+			TitleNL: "Deprecated API in gebruik, nog geen verwijderversie bekend",
+			FixNL:   clip("Plan de migratie naar een nieuwere API-versie." + findUsersNL)}
 		if release, err := parseMinor(m["removed_release"]); err == nil {
 			ocp := removalInOCP(release)
 			f.Severity = removalSeverity(s, ocp)
-			f.Title = "Deprecated API in gebruik, verdwijnt in " + removalText(release)
-			f.Fix = clip("Migreer naar een nieuwere API-versie voordat je naar OpenShift " + ocp.String() + " gaat." + findUsers)
+			f.Title = "Deprecated API in use, removed in " + removalText(release)
+			f.Fix = clip("Migrate to a newer API version before you move to OpenShift " + ocp.String() + "." + findUsers)
+			f.TitleNL = "Deprecated API in gebruik, verdwijnt in " + removalText(release)
+			f.FixNL = clip("Migreer naar een nieuwere API-versie voordat je naar OpenShift " + ocp.String() + " gaat." + findUsersNL)
 		}
 		out = append(out, f)
 	}
@@ -603,8 +669,10 @@ func checkUnsupported(ctx context.Context, s *Scanner) ([]Finding, error) {
 			continue
 		}
 		out = append(out, Finding{Severity: Blocker, Resource: obj.GetKind() + " cluster",
-			Title: "unsupportedConfigOverrides is gezet",
-			Fix:   fmt.Sprintf(`Niet ondersteund en blokkeert upgrades. Verwijder het: oc patch %s.operator.openshift.io cluster --type=merge -p "spec: {unsupportedConfigOverrides: null}"`, r)})
+			Title:   "unsupportedConfigOverrides is set",
+			Fix:     fmt.Sprintf(`Not supported and blocks upgrades. Remove it: oc patch %s.operator.openshift.io cluster --type=merge -p "spec: {unsupportedConfigOverrides: null}"`, r),
+			TitleNL: "unsupportedConfigOverrides is gezet",
+			FixNL:   fmt.Sprintf(`Niet ondersteund en blokkeert upgrades. Verwijder het: oc patch %s.operator.openshift.io cluster --type=merge -p "spec: {unsupportedConfigOverrides: null}"`, r)})
 	}
 
 	pods, err := s.client.Resource(gvrPod).List(ctx, metav1.ListOptions{FieldSelector: "status.phase=Running"})
@@ -624,8 +692,10 @@ func checkUnsupported(ctx context.Context, s *Scanner) ([]Finding, error) {
 			continue
 		}
 		out = append(out, Finding{Severity: Warning, Resource: fmt.Sprintf("Pod %s/%s", p.GetNamespace(), p.GetName()),
-			Title: "Losse pod zonder controller",
-			Fix:   "Een node-drain verwijdert deze pod definitief. Beheer hem via een Deployment of StatefulSet."})
+			Title:   "Standalone pod without a controller",
+			Fix:     "A node drain removes this pod permanently. Manage it through a Deployment or StatefulSet.",
+			TitleNL: "Losse pod zonder controller",
+			FixNL:   "Een node-drain verwijdert deze pod definitief. Beheer hem via een Deployment of StatefulSet."})
 	}
 	return out, errors.Join(errs...)
 }

@@ -49,12 +49,16 @@ func TestWebPageAndStatus(t *testing.T) {
 		CurrentVersion: "4.17.3", TargetVersion: "4.18",
 		Findings: []Finding{
 			{Check: "unsupported", Category: "unsupported", Severity: Warning, Resource: "Pod a/b"},
-			{Check: "pdb", Category: "pdb", Severity: Blocker, Resource: "PodDisruptionBudget a/x"},
+			{Check: "pdb", Category: "pdb", Severity: Blocker, Resource: "PodDisruptionBudget a/x",
+				Title: "english", Fix: "fix", TitleNL: "nederlands", FixNL: "oplossing"},
 		},
 	})
 	st = getStatus(t, srv.URL)
 	if !st.Scanned || st.Score != 70 || st.TargetVersion != "4.18" {
 		t.Errorf("status na scan: %+v", st)
+	}
+	if f := st.Findings[0]; f.Title != "english" || f.TitleNL != "nederlands" || f.FixNL != "oplossing" {
+		t.Errorf("beide talen horen in de status te staan: %+v", f)
 	}
 	if st.Findings[0].Severity != Blocker {
 		t.Errorf("blocker hoort bovenaan: %+v", st.Findings)
