@@ -38,6 +38,14 @@ spec:
               value: "false"
             - name: SCAN_INTERVAL
               value: "60"
+            # Bekende punten die we bewust accepteren: ze blijven zichtbaar als info, maar tellen niet
+            # mee in score en ready. Reguliere expressies, gescheiden door ;, gezocht in
+            # "<check>/<resource>: <title>". Leeg = niets geaccepteerd.
+            # Op CRC: (1) CRC zet zelf overrides in de ClusterVersion, waardoor die Upgradeable=False meldt;
+            # (2) het platform roept zelf de DeploymentConfig-API aan, die pas in OpenShift 6.0 verdwijnt.
+            # Haal deze waarde weg op een echt cluster: daar zijn dit wel punten om op te lossen.
+            - name: ACCEPTED_FINDINGS
+              value: 'clusterversion/ClusterVersion version: Cluster is not upgradeable: .*overrides;deprecated_apis/.*deploymentconfigs\.v1\.apps\.openshift\.io:'
           ports:
             - name: metrics
               containerPort: 8080

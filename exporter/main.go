@@ -49,11 +49,16 @@ func run() error {
 		return err
 	}
 
+	accepted, err := parseAccepted(os.Getenv("ACCEPTED_FINDINGS"))
+	if err != nil {
+		return err
+	}
 	scanner := &Scanner{
 		client:          client,
 		metrics:         thanos,
 		includePlatform: os.Getenv("INCLUDE_PLATFORM") == "true",
 		targetOverride:  os.Getenv("TARGET_VERSION"),
+		accepted:        accepted,
 	}
 
 	coll := newCollector()

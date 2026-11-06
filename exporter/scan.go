@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"regexp"
 	"time"
 
 	"k8s.io/client-go/dynamic"
@@ -82,6 +83,7 @@ type Scanner struct {
 	includePlatform bool
 	targetOverride  string
 	metrics         metricQuerier
+	accepted        []*regexp.Regexp
 
 	// Doelversie van de upgrade, per scan bepaald. nil als die onbekend is.
 	target *minorVersion
@@ -109,7 +111,7 @@ func (s *Scanner) Scan(ctx context.Context) Result {
 			res.Findings = append(res.Findings, f)
 		}
 	}
-	res.Findings = dedupe(res.Findings)
+	res.Findings = dedupe(applyAccepted(res.Findings, s.accepted))
 	res.Score, res.Ready = score(res.Findings, res.CheckUp)
 	res.Platform = s.platformStatus(ctx)
 	return res

@@ -108,7 +108,9 @@ Regels:
   Zo werkt dezelfde binary lokaal en in het cluster.
 - `prometheus/client_golang`: een HTTP-server op `:8080` met `/metrics` en `/healthz`, en een scan-loop
   elke `SCAN_INTERVAL` seconden (standaard 60).
-- Env: `SCAN_INTERVAL`, `TARGET_VERSION` (leeg = volgende minor), `INCLUDE_PLATFORM` (standaard false).
+- Env: `SCAN_INTERVAL`, `TARGET_VERSION` (leeg = volgende minor), `INCLUDE_PLATFORM` (standaard false),
+  `ACCEPTED_FINDINGS` (regexen op `<check>/<resource>: <title>`; treffers worden info en tellen niet mee).
+  De Deployment accepteert de twee CRC-punten; haal die weg op een echt cluster.
 - Eén falende check mag de scan niet stoppen. Zet dan `check_up{check}=0` en ga door met de rest.
 - Een Python-referentie-implementatie bestaat (upgrade-readiness.zip, buiten de repo), met dezelfde checks
   en Nederlandse uitleg- en fix-teksten. Port de logica en teksten één-op-één.
