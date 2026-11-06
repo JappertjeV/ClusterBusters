@@ -44,7 +44,8 @@ spec:
               cpu: 10m
               memory: 32Mi
             limits:
-              memory: 128Mi
+              # Op 128Mi werd de pod 76 keer OOMKilled (5-6 nov), en elke crash wist de score-historie.
+              memory: 256Mi
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
