@@ -36,6 +36,10 @@ Kort scenario voor de presentatie.
    oc delete namespace clusterbusters-demo
    ```
 
+Op `crc03` staat de score vóór de demo op 100: de twee CRC-punten zijn geaccepteerd. De demo gaat dan van
+100 naar 65, na de fix naar 90 en na het opruimen terug naar 100. Stap 1 werkt ook direct na stap 2, zonder
+eerst op te ruimen. De volledige uitleg staat in de README in de root.
+
 ## Testomgeving: goed en kapot naast elkaar
 
 `testomgeving.yaml` zet een mix neer in de namespaces `clusterbusters-test`,
