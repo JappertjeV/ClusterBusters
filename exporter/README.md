@@ -77,18 +77,18 @@ root-filesystem in de pod is read-only.
 
 ## Aanzetten
 
-Voer deze stappen op volgorde uit:
+De Deployment staat op 1 replica. Op een nieuw cluster bestaat het image nog niet, dus staat de pod
+op `ImagePullBackOff` tot je het eerste image bouwt:
 
-1. Merge de Go-code naar `main`. De `BuildConfig` bouwt vanaf die branch.
-2. Bouw het eerste image:
+```bash
+oc start-build upgrade-readiness-exporter -n clusterbusters --follow
+```
 
-   ```bash
-   oc start-build upgrade-readiness-exporter -n clusterbusters --follow
-   ```
+```bash
+oc rollout restart deployment/upgrade-readiness-exporter -n clusterbusters
+```
 
-3. Zet `replicas` in `base/exporter-deployment.yaml` op `1` en merge dat naar `main`. Argo CD rolt de pod daarna uit.
-
-Doe stap 3 niet vóór stap 2. Zonder image komt de pod in `ImagePullBackOff` en wordt de Argo CD-app `Degraded`.
+Het volledige stappenplan staat in `docs/cluster-opzetten.md`.
 
 ## Nieuwe versie uitrollen
 
@@ -112,7 +112,7 @@ up{namespace="clusterbusters", service="upgrade-readiness-exporter"}
 
 ## Dashboard
 
-`base/perses-dashboard.yaml` toont alle metrics hierboven in de sectie "Readiness (exporter)". De tabel "Wat moet er gefixt worden" komt uit `upgrade_readiness_finding == 1`.
+`base/perses-dashboard.yaml` toont alle metrics hierboven in de secties "Overzicht", "Wat moet er gefixt worden" en "Score en checks". De tabel "Wat moet er gefixt worden" komt uit `upgrade_readiness_finding == 1`.
 
 ## Demo
 
