@@ -74,8 +74,9 @@ OpenShift-console **Observe → Dashboards (Perses)**, kies project `clusterbust
 ### Alerts en losse metrics
 
 - Alerts: **Observe → Alerting** in de console. `UpgradeBlockersPresent` gaat af als het cluster
-  2 minuten niet klaar is, `UpgradeReadinessCheckFailing` als een check faalt, en
-  `UpgradeReadinessScanStale` als er 10 minuten geen scan is afgerond.
+  2 minuten niet klaar is, `UpgradeReadinessCheckFailing` als een check faalt,
+  `UpgradeReadinessScanStale` als er 10 minuten geen scan is afgerond, en
+  `UpgradeReadinessMetricsMissing` als er 10 minuten geen metrics binnenkomen.
 - Metrics: **Observe → Metrics**, bijvoorbeeld `upgrade_readiness_score` of
   `upgrade_readiness_finding == 1`.
 
@@ -144,8 +145,10 @@ Wijzig altijd via Git: Argo CD draait handmatige wijzigingen op het cluster teru
 In [`testcases/`](testcases/README.md) staan bestanden die je met de hand toepast. Ze staan bewust
 buiten `base/`, anders draait Argo CD elke live fix terug.
 
-- `demo-kapot.yaml`: het korte demo-scenario. Eén blocker en twee warnings; de score gaat van 100
-  naar 65 en na de live fix naar 90.
+- `demo-kapot.yaml`: het korte demo-scenario. Eén blocker en twee warnings; de score daalt met 35
+  punten en stijgt na de live fix met 25. Op `crc03` gaat dat van 70 naar 35 en dan naar 60: de
+  CRC-overrides en de verouderde DeploymentConfig-API kosten daar al 30 punten. Daardoor staat
+  `UpgradeBlockersPresent` daar al aan vóór de demo.
 - `testomgeving.yaml`: goede en kapotte onderdelen naast elkaar (workloads, PDB's, een losse pod,
   een client van een verouderde API, vastgelopen Operator-updates).
 - `nep-clusteroperator.yaml` (optioneel, cluster-admin): een nep-ClusterOperator die zich Degraded

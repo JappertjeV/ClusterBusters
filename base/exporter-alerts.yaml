@@ -33,3 +33,13 @@ spec:
           annotations:
             summary: De upgrade-readiness-exporter heeft al 10 minuten geen scan afgerond
             description: De metrics op het dashboard zijn verouderd. Controleer of de exporter-pod draait.
+        # ScanStale ziet een weggevallen pod niet: zonder metric heeft die regel niets om te vergelijken.
+        # De for voorkomt een alert bij een gewone herstart.
+        - alert: UpgradeReadinessMetricsMissing
+          expr: absent(upgrade_readiness_last_scan_timestamp_seconds)
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Prometheus krijgt al 10 minuten geen metrics van de upgrade-readiness-exporter
+            description: De exporter-pod draait waarschijnlijk niet of wordt niet gescrapet. Controleer de pod en de ServiceMonitor.

@@ -10,7 +10,11 @@ Voer de stappen op volgorde uit. Je hebt `oc` en `jq` nodig, en een account met 
    oc get clusterversion version -o json | jq -c '{spec:{overrides:[.spec.overrides[] | select(.name != "cluster-monitoring-operator" and .name != "monitoring")]}}' | oc patch clusterversion version --type=merge --patch-file=/dev/stdin
    ```
 
-   Wacht tot de monitoring beschikbaar is:
+   Wacht tot de monitoring bestaat en beschikbaar is. Dit zijn twee commando's, omdat `oc wait --for=condition` meteen met `NotFound` stopt zolang het object er nog niet is:
+
+   ```bash
+   oc wait co/monitoring --for=create --timeout=15m
+   ```
 
    ```bash
    oc wait co/monitoring --for=condition=Available --timeout=15m
@@ -25,6 +29,14 @@ Voer de stappen op volgorde uit. Je hebt `oc` en `jq` nodig, en een account met 
    Wacht tot namespace `openshift-gitops` en de Application-CRD bestaan:
 
    ```bash
+   oc wait namespace/openshift-gitops --for=create --timeout=10m
+   ```
+
+   ```bash
+   oc wait crd/applications.argoproj.io --for=create --timeout=10m
+   ```
+
+   ```bash
    oc wait crd/applications.argoproj.io --for=condition=Established --timeout=10m
    ```
 
@@ -34,9 +46,13 @@ Voer de stappen op volgorde uit. Je hebt `oc` en `jq` nodig, en een account met 
    oc apply -f argocd/
    ```
 
-   Vanaf hier rolt Argo CD `cluster/` en `overlays/prod` uit. De eerste sync kan een paar keer opnieuw starten, omdat de CRD's van de Cluster Observability Operator nog niet bestaan.
+   Vanaf hier rolt Argo CD `cluster/` en `overlays/prod` uit. De eerste sync kan een paar keer opnieuw starten, omdat de CRD's van de Cluster Observability Operator nog niet bestaan. Beide Applications proberen het tot 10 keer opnieuw. Staat een app daarna nog niet op `Synced`, klik dan op **Sync** op de webpagina van Argo CD.
 
-4. **Bouw het eerste image van de exporter.** Tot die tijd staat de pod op `ImagePullBackOff`.
+4. **Bouw het eerste image van de exporter.** Tot die tijd staat de pod op `ImagePullBackOff`. Wacht eerst tot Argo CD de BuildConfig heeft aangemaakt:
+
+   ```bash
+   oc wait buildconfig/upgrade-readiness-exporter -n clusterbusters --for=create --timeout=20m
+   ```
 
    ```bash
    oc start-build upgrade-readiness-exporter -n clusterbusters --follow

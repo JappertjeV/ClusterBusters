@@ -42,3 +42,14 @@ spec:
     syncOptions:
       # De namespace staat niet in de manifests, dus Argo CD moet hem zelf kunnen aanmaken.
       - CreateNamespace=true
+      # Op een leeg cluster bestaan de Perses-CRD's nog niet: de Operator uit de andere Application
+      # installeert ze pas. Zonder deze optie faalt de hele sync al op de dry-run.
+      - SkipDryRunOnMissingKind=true
+    # Auto-sync probeert een mislukte commit anders niet opnieuw, en dan blijft de uitrol na een
+    # reset staan tot iemand het ziet. Zelfde waarden als argocd/application-cluster.yaml.
+    retry:
+      limit: 10
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
