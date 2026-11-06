@@ -157,6 +157,8 @@ metadata:
   namespace: clusterbusters-test
 spec:
   minAvailable: 1
+  # null: zie demo-kapot.yaml. Zo kun je na de live fix opnieuw oc apply doen.
+  maxUnavailable: null
   selector:
     matchLabels: {app: kapot-een-replica}
 ---
