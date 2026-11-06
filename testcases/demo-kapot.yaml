@@ -41,6 +41,9 @@ metadata:
   namespace: clusterbusters-demo
 spec:
   minAvailable: 1
+  # null verwijdert maxUnavailable bij oc apply. Zonder dit faalt een tweede apply na de live fix
+  # ("minAvailable and maxUnavailable cannot be both set"), omdat de fix maxUnavailable heeft gezet.
+  maxUnavailable: null
   selector:
     matchLabels:
       app: demo-app
