@@ -14,6 +14,12 @@ import (
 //go:embed web/index.html
 var indexHTML []byte
 
+// Opgenomen runs van het resilience-werk op kind. Ingebouwd en dus vast: deze pagina hangt aan een Route zonder
+// login, en een opname vraagt geen verbinding met de scanner of met Chaos Mesh.
+//
+//go:embed web/resilience-runs.json
+var resilienceRuns []byte
+
 type apiFinding struct {
 	Check    string `json:"check"`
 	Category string `json:"category"`
@@ -92,6 +98,11 @@ func registerWeb(mux *http.ServeMux, coll *collector) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
 		_, _ = w.Write(indexHTML)
+	})
+	mux.HandleFunc("/api/resilience", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-cache")
+		_, _ = w.Write(resilienceRuns)
 	})
 	mux.HandleFunc("/api/status", func(w http.ResponseWriter, _ *http.Request) {
 		res, hist := coll.snapshot()

@@ -134,6 +134,32 @@ tbody tr{transition:background-color .2s ease-in-out}
 .bar div i{display:block;height:100%;background:var(--bar);border-radius:9999px;transform-origin:left;animation:grow .5s var(--ease) both}
 @keyframes grow{0%{transform:scaleX(0)}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.draw{stroke-dashoffset:0}}
+
+/* Resilience: opgenomen runs op een gedeelde tijdas */
+.rrun{display:flex;flex-direction:column;gap:12px}
+.rrun + .rrun{border-top:1px solid var(--line);padding-top:24px;margin-top:24px}
+.rrun .arm{font-size:1.125rem;font-weight:700}
+.rband{position:relative;height:8px}
+.rband i{position:absolute;top:0;bottom:0;border-radius:4px;background:var(--orange)}
+.rtrack{position:relative;height:36px;border-radius:8px;background:var(--track);overflow:hidden}
+.rtrack>i{position:absolute;top:0;bottom:0}
+.rtrack .ok{background:var(--green)}
+.rtrack .bad{background:repeating-linear-gradient(135deg,var(--red) 0 6px,#8f0d0d 6px 12px)}
+.rtrack .mark{width:2px;background:var(--ink);opacity:.8}
+.rtrack .cover{right:0;background:var(--track);display:none}
+.rtrack .cur{width:2px;background:var(--fg);display:none}
+.raxis{position:relative;height:20px;font-size:.75rem;color:var(--muted)}
+.raxis span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.rstats{display:flex;flex-wrap:wrap;gap:8px 32px;font-size:.875rem}
+.rstats b{display:block;font-size:1.5rem;line-height:1.2;font-weight:900;font-variant-numeric:tabular-nums}
+.revents{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:.9375rem}
+.revents li{display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px;transition:opacity .15s ease-in-out}
+.revents li.todo{opacity:.3}
+.revents time{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+.rkey{display:flex;flex-wrap:wrap;gap:4px 20px;font-size:.8125rem;color:var(--muted)}
+.rkey i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:6px}
+.rbanner{background:var(--orange-soft);color:var(--ink);border-radius:20px;padding:16px 24px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.rbanner strong{flex:none}
 footer{border-top:1px solid var(--line);padding-block:24px;font-size:.8125rem;color:var(--muted)}
 </style>
 </head>
@@ -151,12 +177,12 @@ footer{border-top:1px solid var(--line);padding-block:24px;font-size:.8125rem;co
 
 <script>
 // Live versie van het KPN-ontwerp: alle cijfers komen uit /api/status van de exporter.
-// Alleen de pagina's Demo en Wat kan in Perses zijn vaste uitleg.
+// Alleen de pagina's Demo en Wat kan in Perses zijn vaste uitleg. Resilience toont opgenomen runs uit /api/resilience, nooit live data.
 // Taal: Engels tenzij de bezoeker NL kiest. Bewust niet de browsertaal volgen: de opdrachtgever wil Engels als standaard.
 let lang='en';try{if(localStorage.getItem('cb-lang')==='nl')lang='nl'}catch(e){}
 const tr=(en,nl)=>lang==='nl'?nl:en;
 // Paginanamen zijn functies, omdat ze per taal verschillen. De ids blijven gelijk, zodat links blijven werken.
-const PAGES=[['overzicht',()=>tr('Overview','Overzicht')],['fixen',()=>tr('Fixes','Fixen')],['score',()=>'Score'],['checks',()=>'Checks'],['platform',()=>'Platform'],['demo',()=>'Demo'],['perses',()=>tr('What Perses can do','Wat kan in Perses')]];
+const PAGES=[['overzicht',()=>tr('Overview','Overzicht')],['fixen',()=>tr('Fixes','Fixen')],['score',()=>'Score'],['checks',()=>'Checks'],['platform',()=>'Platform'],['demo',()=>'Demo'],['resilience',()=>'Resilience'],['perses',()=>tr('What Perses can do','Wat kan in Perses')]];
 const LIVE=new Set(['overzicht','fixen','score','checks','platform']);
 const REFRESH_MS=15000;
 let D=null,fetchedAt=0,lastScore=0,current=null,fxFilter='alle',offline=false,demoK='1';
@@ -255,6 +281,94 @@ const checkInfo=()=>({
   unsupported:['operator.openshift.io (cluster), Pods',tr('unsupportedConfigOverrides set','unsupportedConfigOverrides gezet'),tr('Standalone pod without a controller','Losse pod zonder controller')]
 });
 
+// Resilience: een opname, geen live weergave. Deze pagina hangt aan een Route zonder login, dus er staat bewust
+// geen knop die een fout start: iedereen met de URL zou dan storingen kunnen veroorzaken.
+let RES=null,resErr=false,resScen='latched-dependency',resRun=0;
+const RES_SCEN=()=>({
+  placebo:tr('No fault: checks that the whole chain stays quiet and takes no action.','Geen fout: controleert of de hele keten stil blijft en geen actie doet.'),
+  'pod-kill-one':tr('Kills one of the two backend pods. The ReplicaSet replaces it without our action.','Doodt één van de twee backend-pods. De ReplicaSet vervangt hem zonder onze actie.'),
+  'pod-kill-all':tr('Kills all frontend pods at once. The ReplicaSet recovers without our action.','Doodt alle frontend-pods tegelijk. De ReplicaSet herstelt zonder onze actie.'),
+  'pod-failure':tr('Replaces the images of all backend pods with pause. A rollout restart escapes the fault instead of curing it, so that run is not counted.','Vervangt de images van alle backend-pods door pause. Een rollout restart ontsnapt aan de fout in plaats van hem te genezen, dus die run telt niet mee.'),
+  'network-latency':tr('Delays all traffic from backend by 400 ms. A restart does not solve that, so it only sends a notification.','Vertraagt al het verkeer uit backend met 400 ms. Een herstart lost dat niet op, dus er gaat alleen een melding uit.'),
+  'dns-partition':tr('Blocks traffic from frontend to the cluster DNS. A restart does not solve that, so it only sends a notification.','Blokkeert het verkeer van frontend naar de cluster-DNS. Een herstart lost dat niet op, dus er gaat alleen een melding uit.'),
+  'dns-error':tr('Makes DNS queries from frontend for backend fail. A restart does not solve that, so it only sends a notification.','Laat DNS-vragen van frontend voor backend mislukken. Een herstart lost dat niet op, dus er gaat alleen een melding uit.'),
+  'cpu-stress':tr('Loads one backend pod with two CPU workers within its own limit. It only sends a notification.','Belast één backend-pod met twee CPU-workers binnen zijn eigen limiet. Er gaat alleen een melding uit.'),
+  'latched-dependency':tr('Packet loss on ledger makes checkout hang, and only a restart of checkout cures that. This is the scenario that shows the difference best.','Pakketverlies op ledger laat checkout vastlopen, en alleen een herstart van checkout geneest dat. In dit scenario zie je het verschil het best.'),
+  'service-deleted':tr('Deletes Service backend. Only the remediator puts it back, from the golden manifest.','Verwijdert Service backend. Alleen de remediator zet hem terug, uit het gouden manifest.')
+});
+const RES_OUT=()=>({
+  auto_remediated:[tr('Repaired automatically','Automatisch gerepareerd'),'t-ok'],
+  evaded:[tr('Restart escaped the fault, not counted','Herstart ontsnapte aan de fout, telt niet'),'t-warning'],
+  self_healed:[tr('Healed by itself','Vanzelf hersteld'),'t-ok'],
+  tolerated:[tr('Tolerated','Opgevangen'),'t-info'],
+  recovered_after_fault_expiry:[tr('Recovered only after the fault ended','Pas hersteld nadat de fout stopte'),'t-warning'],
+  not_recovered:[tr('Not recovered','Niet hersteld'),'t-blocker'],
+  aborted:[tr('Aborted','Afgebroken'),'t-niet'],
+  invalid:[tr('Invalid','Ongeldig'),'t-niet']
+});
+const resArm=a=>a==='enforce'?tr('Automation on (enforce)','Automatie aan (enforce)'):tr('Logging only (shadow)','Alleen loggen (shadow)');
+// De conductor schrijft -1 als er niets gemeten is, en 0 als de detectie vóór de eerste mislukte probe viel. Geen van beide is een meting.
+const resSec=v=>v==null||v<=0?'–':Math.round(v)+' s';
+const resT=t=>(t<0?'−':'+')+Math.abs(Math.round(t))+' s';
+const resOut=o=>{const x=RES_OUT()[o]||[o,'t-niet'];return `<span class="tag ${x[1]}">${esc(x[0])}</span>`};
+function resAction(a){const what={rolloutRestart:tr('rollout restart of','rollout restart van'),notify:tr('notification about','melding over'),recreateResource:tr('recreation of','herstel van')}[a.type]||esc(a.type);
+  const name=`${what} <code>${esc(a.target)}</code>`;
+  return a.result==='would_act'?tr(`Would run ${name}, but takes no action in shadow`,`Zou ${name} doen, maar doet in shadow niets`):tr(`Remediator starts ${name}`,`Remediator start ${name}`)}
+function resEvents(r){const ev=[];
+  ev.push([0,r.scenario==='placebo'?tr('Observation starts, nothing is injected','Observatie begint, er wordt niets geïnjecteerd'):tr('Fault injected','Fout geïnjecteerd')]);
+  if(r.impact!=null)ev.push([r.impact,tr('First failed probe','Eerste mislukte probe')]);
+  if(r.detect!=null)ev.push([r.detect,tr('Alert detected','Alert gedetecteerd')]);
+  for(const a of r.actions)if(a.t!=null)ev.push([a.t,resAction(a)]);
+  if(r.scenario!=='placebo'&&r.faultEnd!=null)ev.push([r.faultEnd,tr('Fault ended','Fout gestopt')]);
+  if(r.recover!=null&&r.outcome!=='tolerated')ev.push([r.recover,tr('Recovered: start of a stable run of good probes','Hersteld: begin van een stabiele reeks goede probes')]);
+  if(r.outcome==='not_recovered')ev.push([r.windowEnd,tr('Observation window over, still not recovered','Observatievenster voorbij, nog steeds niet hersteld')]);
+  return ev.sort((a,b)=>a[0]-b[0])}
+function resRow(r,lo,hi){const pc=t=>(Math.min(hi,Math.max(lo,t))-lo)/(hi-lo)*100;
+  const segs=r.probes.filter(s=>s[1]>lo).map(s=>`<i class="${s[2]?'ok':'bad'}" style="left:${pc(s[0])}%;width:${pc(s[1])-pc(s[0])}%"></i>`).join('');
+  const marks=[r.detect,...r.actions.filter(a=>a.type!=='notify').map(a=>a.t)].filter(t=>t!=null).map(t=>`<i class="mark" style="left:${pc(t)}%"></i>`).join('');
+  const band=r.scenario!=='placebo'&&r.faultEnd!=null?`<i style="left:${pc(0)}%;width:${pc(r.faultEnd)-pc(0)}%"></i>`:'';
+  const step=hi-lo>200?60:30,ticks=[];for(let t=0;t<=hi;t+=step)ticks.push(`<span style="left:${pc(t)}%">${t?'+'+t:'0'} s</span>`);
+  const ttr=r.censored?'&gt;'+resSec(r.windowEnd):r.recover!=null&&r.outcome!=='tolerated'?resSec(r.ttr):'–';
+  const label=tr(`${r.failedProbes} failed probes, outcome ${r.outcome}`,`${r.failedProbes} mislukte probes, uitkomst ${r.outcome}`);
+  return `<div class="rrun"><div class="head"><span class="arm">${resArm(r.arm)}</span>${resOut(r.evaded&&r.outcome==='auto_remediated'?'evaded':r.outcome)}${r.finalBuild?`<span class="sample">${tr('final build','definitieve build')}</span>`:''}</div>
+    <div class="rband">${band}</div>
+    <div class="rtrack" role="img" aria-label="${esc(label)}" data-lo="${lo}" data-hi="${hi}">${segs}${marks}<i class="cover"></i><i class="cur"></i></div>
+    <div class="raxis" aria-hidden="true">${ticks.join('')}</div>
+    <div class="rstats"><div><b>${resSec(r.ttd)}</b>${tr('to detection','tot detectie')}</div><div><b>${ttr}</b>${tr('to recovery','tot herstel')}</div><div><b>${r.failedProbes}</b>${tr('failed probes','mislukte probes')}</div></div>
+    ${r.evaded?`<p class="note" style="color:var(--warn)">${tr('The restart replaced the pods and so escaped the fault while it was still running. It did not cure anything, so this run is not counted.','De herstart verving de pods en ontsnapte zo aan de fout terwijl die nog liep. Hij genas niets, dus deze run telt niet mee.')}</p>`:''}
+    <ol class="revents">${resEvents(r).map(([t,x])=>`<li data-t="${t}"><time>${resT(t)}</time><span>${x}</span></li>`).join('')}</ol></div>`}
+function resPair(){const rs=RES.replay.filter(r=>r.scenario===resScen),order=['enforce','shadow'];
+  rs.sort((a,b)=>order.indexOf(a.arm)-order.indexOf(b.arm));
+  const lo=-10,hi=Math.max(...rs.map(r=>Math.max(r.end??0,r.probes.length?r.probes[r.probes.length-1][1]:0)));
+  const open=resScen==='placebo'?`<p class="note" style="color:var(--warn)">${tr('Open point: this shadow run had 1 failed probe with no fault injected. The cause has not been investigated.','Open punt: deze shadow-run had 1 mislukte probe zonder dat er een fout was. De oorzaak is niet onderzocht.')}</p>`:'';
+  return `<p style="margin:0;max-width:80ch">${RES_SCEN()[resScen]}</p>
+    <div class="head"><button id="resplay" class="btn btn-lime" style="border:0;cursor:pointer" type="button">${tr('Replay in 12 seconds','Speel af in 12 seconden')}</button><strong id="resclock" style="font-variant-numeric:tabular-nums"></strong></div>
+    <div class="rkey"><span><i style="background:var(--green)"></i>${tr('probe good','probe goed')}</span><span><i style="background:repeating-linear-gradient(135deg,var(--red) 0 3px,#8f0d0d 3px 6px)"></i>${tr('probe failed','probe mislukt')}</span><span><i style="background:var(--orange)"></i>${tr('fault active','fout actief')}</span><span><i style="background:var(--ink);box-shadow:0 0 0 1px var(--muted)"></i>${tr('alert, repair action','alert, herstelactie')}</span></div>
+    <section class="card">${rs.map(r=>resRow(r,lo,hi)).join('')}</section>
+    <p class="note">${tr('One recorded run per arm: the latest valid one. Other runs of the same scenario took a different time, see the table.','Eén opgenomen run per arm: de laatste geldige. Andere runs van hetzelfde scenario duurden anders, zie de tabel.')}</p>${open}`}
+function resPlay(){const id=++resRun,tracks=[...document.querySelectorAll('.rtrack')],clock=document.getElementById('resclock'),items=[...document.querySelectorAll('.revents li')];if(!tracks.length)return;
+  const lo=+tracks[0].dataset.lo,hi=+tracks[0].dataset.hi,dur=12000,t0=performance.now();
+  tracks.forEach(t=>{t.querySelector('.cover').style.display='block';t.querySelector('.cur').style.display='block'});
+  (function frame(now){if(id!==resRun||!clock.isConnected)return;const f=Math.min(1,(now-t0)/dur),at=lo+(hi-lo)*f,left=f*100;
+    tracks.forEach(t=>{const c=t.querySelector('.cover');c.style.left=left+'%';t.querySelector('.cur').style.left=left+'%'});
+    items.forEach(li=>li.classList.toggle('todo',+li.dataset.t>at));clock.textContent=resT(at);
+    if(f<1)requestAnimationFrame(frame);else{tracks.forEach(t=>{t.querySelector('.cover').style.display='none';t.querySelector('.cur').style.display='none'});clock.textContent=''}})(t0)}
+function resBind(){const b=document.getElementById('resplay');if(!b)return;if(reduced){b.hidden=true;return}b.onclick=resPlay}
+function resTable(){return `<div class="tablebox"><table style="min-width:760px"><thead><tr><th>${tr('Scenario','Scenario')}</th><th>${tr('Arm','Arm')}</th><th>Runs</th><th>${tr('Outcomes','Uitkomsten')}</th><th>${tr('Recorded recovery','Opgenomen herstel')}</th></tr></thead><tbody>${RES.summary.map(s=>`<tr><td style="white-space:nowrap"><code>${esc(s.scenario)}</code></td><td style="white-space:nowrap">${s.arm}</td><td>${s.runs}</td><td><div style="display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center">${Object.entries(s.outcomes).map(([o,n])=>`<span>${n} ×</span>${resOut(o)}`).join('')}</div></td><td style="white-space:nowrap">${s.recoveryMin==null?'–':s.recoveryMin===s.recoveryMax?s.recoveryMin+' s':`${s.recoveryMin}–${s.recoveryMax} s`}</td></tr>`).join('')}</tbody></table></div>`}
+function resView(){const head=`<div><h1>${tr('Resilience: recorded fault runs','Resilience: opgenomen foutruns')}</h1><p class="lede">${tr('We break something on purpose, Prometheus raises an alert, and the remediator repairs it or only logs what it would do. Comparing the two arms shows whether the automation helped.','We maken iets expres stuk, Prometheus geeft een alert, en de remediator repareert het of logt alleen wat hij zou doen. Het verschil tussen de twee armen laat zien of de automatie hielp.')}</p></div>`;
+  if(resErr)return `<div class="view">${head}<section class="card"><p style="margin:0;color:var(--bad)">${tr('The recorded runs could not be loaded.','De opgenomen runs konden niet worden geladen.')}</p></section></div>`;
+  if(!RES)return `<div class="view">${head}<section class="card"><p style="margin:0">${tr('Loading the recorded runs.','De opgenomen runs laden.')}</p></section></div>`;
+  return `<div class="view">${head}
+    <div class="rbanner"><strong>${tr('Recording, not live.','Opname, niet live.')}</strong><span>${tr(`Recorded on ${esc(RES.recordedOn)} on a local ${esc(RES.platform)} cluster with Chaos Mesh ${esc(RES.chaosMesh)}, not on this OpenShift cluster. This page cannot start or stop faults.`,`Opgenomen op ${esc(RES.recordedOn)} op een lokaal ${esc(RES.platform)}-cluster met Chaos Mesh ${esc(RES.chaosMesh)}, niet op dit OpenShift-cluster. Deze pagina kan geen fouten starten of stoppen.`)}</span></div>
+    <div>${seg('rsc',RES.scenarios.map(s=>[s,s]),resScen)}</div>
+    <div class="stack" id="respair">${resPair()}</div>
+    <section class="stack"><h2>${tr(`All ${RES.totalRuns} recorded runs`,`Alle ${RES.totalRuns} opgenomen runs`)}</h2>${resTable()}
+      <p class="note">${tr(`No MTTR is claimed: that takes at least 5 valid runs per arm, and the planned series was not run. ${RES.totalRuns-RES.finalBuildRuns} of the ${RES.totalRuns} runs predate the last review fixes; only ${RES.finalBuildRuns} ran on the final build.`,`Er wordt geen MTTR geclaimd: daarvoor zijn minstens 5 geldige runs per arm nodig, en de geplande reeks is niet gedraaid. ${RES.totalRuns-RES.finalBuildRuns} van de ${RES.totalRuns} runs zijn ouder dan de laatste review-fixes; maar ${RES.finalBuildRuns} draaide op de definitieve build.`)}</p>
+      <p class="note">${tr('Many invalid and aborted runs are deliberate safety tests, others are real preflight or injection failures. Tolerated counts only probes that failed outright, so slower responses do not count. kind does not prove CRI-O, SCC, SELinux, OVN-Kubernetes, service-ca or Thanos.','Veel ongeldige en afgebroken runs zijn bewuste veiligheidsproeven, andere zijn echte fouten in de voorcontrole of bij het injecteren. Opgevangen telt alleen probes die helemaal mislukten, dus tragere antwoorden tellen niet mee. kind bewijst niets over CRI-O, SCC, SELinux, OVN-Kubernetes, service-ca of Thanos.')}</p></section></div>`}
+async function resLoad(){if(RES||resErr)return;
+  try{const r=await fetch('api/resilience',{cache:'no-cache'});if(!r.ok)throw new Error('HTTP '+r.status);RES=await r.json()}catch(e){resErr=true}
+  if(location.hash==='#resilience')render(false,true)}
+
 const V={
   overzicht:()=>`<div class="view"><div><h1>Upgrade readiness</h1></div><div class="stack" style="gap:32px">${overview()}</div></div>`,
   fixen:()=>{const c=s=>sevs(s).length;return `<div class="view"><div><h1>${tr('What needs fixing','Wat moet er gefixt worden')}</h1><p class="lede">${tr('All findings from the last scan, most severe first, each with its fix.','Alle bevindingen van de laatste scan, ernstigste eerst, met per bevinding de oplossing.')}</p></div><div>${seg('fx',[['alle',`${tr('All','Alles')} (${D.findings.length})`],['blocker',`Blockers (${c('blocker')})`],['warning',`Warnings (${c('warning')})`],['info',`Info (${c('info')})`]],fxFilter)}</div><div id="fxt">${fixTable()}</div><p class="note">${tr('Live from the exporter. A resolved finding disappears at the next scan.','Live uit de exporter. Een opgeloste bevinding verdwijnt bij de volgende scan.')}</p></div>`},
@@ -275,6 +389,7 @@ const V={
     ${demoLive(d)}
     <section class="cards"><div class="stack"><h2>${tr('Before: demo broken','Vóór: demo kapot')}</h2>${ring(d.kapot,'rv',tr('Before the fix','Vóór de fix'))}</div><div class="stack"><h2>${tr('After: PDB fixed','Na: PDB gefixt')}</h2>${ring(d.gefixt,'rn',tr('After the fix','Na de fix'))}</div></section>
     <section class="stack"><h2>${tr('Play it step by step','Speel het stap voor stap af')}</h2><div>${seg('st',demoSteps().map((s,i)=>[String(i),s.step]),demoK)}</div><div class="fix" style="background:var(--subtle);align-items:center"><code id="cmd" style="overflow-wrap:anywhere;flex:1"></code><button id="copy" class="btn btn-lime" style="border:0;cursor:pointer;min-height:36px;padding:4px 18px" type="button">${tr('Copy','Kopieer')}</button></div><p id="demotxt" style="margin:0"></p><p class="note">${tr('Allow 1 to 2 minutes per step: the exporter scans every 60 seconds.','Reken op 1 à 2 minuten per stap: de exporter scant elke 60 seconden.')}</p></section></div>`},
+  resilience:()=>resView(),
   perses:()=>{const R=[
     ['kan',tr('Colours from this house style','Kleuren uit deze huisstijl'),tr('Thresholds and colorMode on the counters, cellSettings in tables, fixed line colour on the chart.','Thresholds en colorMode op de tellers, cellSettings in tabellen, vaste lijnkleur op de grafiek.')],
     ['kan',tr('Score ring','Scorering'),tr('GaugeChart with thresholds and max 100. Perses picks the shape.','GaugeChart met thresholds en max 100. De vorm kiest Perses.')],
@@ -346,11 +461,14 @@ function render(nav,force){const p=PAGES.some(x=>x[0]===location.hash.slice(1))?
   if(p==='demo'){const d=demoScores();if(nav){animateRing('rv',0,d.kapot);animateRing('rn',0,d.gefixt)}
     if(D&&D.scanned){animateRing('rlive',nav?0:force?D.score:lastScore,D.score);const st=demoState(),nx=demoSteps()[nextStep(st)];bindCopy(document.getElementById('livecopy'),document.getElementById('livecmd'),nx.cmd)}
     demoStep(demoK);bindSeg('st',k=>{demoK=k;demoStep(k)})}
+  if(p==='resilience'){resRun++;if(!RES&&!resErr)resLoad();resBind();
+    bindSeg('rsc',k=>{resRun++;resScen=k;document.getElementById('respair').innerHTML=resPair();resBind()})}
   if(p==='fixen')bindSeg('fx',k=>{fxFilter=k;document.getElementById('fxt').innerHTML=fixTable()});
   current=p;
   if(nav)window.scrollTo(0,0);else window.scrollTo(0,y)}
 
-function renderMeta(){if(offline){meta.textContent=tr('no connection to the exporter','geen verbinding met de exporter');return}
+function renderMeta(){if(location.hash==='#resilience'){meta.textContent=tr('clusterbusters · recorded runs, not live','clusterbusters · opgenomen runs, niet live');return}
+  if(offline){meta.textContent=tr('no connection to the exporter','geen verbinding met de exporter');return}
   if(!D||!D.scanned){meta.textContent=tr('clusterbusters · first scan running','clusterbusters · eerste scan loopt');return}
   meta.innerHTML=`<span class="live">clusterbusters · OpenShift ${esc(D.currentVersion||tr('unknown','onbekend'))}${D.targetVersion?` → ${esc(D.targetVersion)}`:''} · live</span>`}
 
@@ -383,7 +501,7 @@ async function load(){
   catch(e){if(!offline){offline=true;if(!D)render(false)}}
   renderMeta()}
 
-addEventListener('hashchange',()=>render(true));
+addEventListener('hashchange',()=>{render(true);renderMeta()});
 addEventListener('resize',()=>document.querySelectorAll('.seg').forEach(placeSeg));
 addEventListener('scroll',()=>document.getElementById('top').classList.toggle('scrolled',scrollY>8),{passive:true});
 // De leeftijd van de scan telt door tussen twee verversingen.
@@ -400,7 +518,7 @@ function applyLang(){document.documentElement.lang=lang;
   lg.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===lang));
   th.setAttribute('aria-label',tr('Display','Weergave'));lg.setAttribute('aria-label',tr('Language','Taal'));menu.setAttribute('aria-label',tr('Pages',"Pagina's"));
   th.querySelector('[data-v="light"]').textContent=tr('Light','Licht');th.querySelector('[data-v="dark"]').textContent=tr('Dark','Donker');
-  document.getElementById('foot').textContent=tr('Design for the KPN hackathon, not a KPN product. Live data from the upgrade-readiness exporter; the Demo page calculates from the current state of the cluster. Colours and typeface come from the public KPN tokens, the illustrations are our own drawings.','Ontwerp voor de KPN-hackathon, geen KPN-product. Live data uit de upgrade-readiness-exporter; de pagina Demo rekent vanaf de huidige stand van het cluster. Kleuren en lettertype komen uit de openbare KPN-tokens, de illustraties zijn eigen tekeningen.');
+  document.getElementById('foot').textContent=tr('Design for the KPN hackathon, not a KPN product. Live data from the upgrade-readiness exporter; the Demo page calculates from the current state of the cluster, and the Resilience page shows recorded runs. Colours and typeface come from the public KPN tokens, the illustrations are our own drawings.','Ontwerp voor de KPN-hackathon, geen KPN-product. Live data uit de upgrade-readiness-exporter; de pagina Demo rekent vanaf de huidige stand van het cluster, en de pagina Resilience toont opgenomen runs. Kleuren en lettertype komen uit de openbare KPN-tokens, de illustraties zijn eigen tekeningen.');
   renderMenu();placeSeg(th);placeSeg(lg)}
 lg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.dataset.v===lang)return;lang=b.dataset.v;try{localStorage.setItem('cb-lang',lang)}catch(e){}
   applyLang();render(false,true);renderMeta()});

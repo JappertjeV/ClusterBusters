@@ -133,3 +133,44 @@ func TestQueryScalar(t *testing.T) {
 		t.Errorf("QueryScalar = %v, %v", v, err)
 	}
 }
+
+// De opname moet kloppen met zichzelf, en de pagina mag geen startcommando noemen: de Route heeft geen login.
+func TestResilienceRecording(t *testing.T) {
+	mux := http.NewServeMux()
+	registerWeb(mux, newCollector())
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	resp, err := http.Get(srv.URL + "/api/resilience")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	var rec struct {
+		TotalRuns int      `json:"totalRuns"`
+		Scenarios []string `json:"scenarios"`
+		Summary   []struct {
+			Runs int `json:"runs"`
+		} `json:"summary"`
+		Replay []struct {
+			Scenario string `json:"scenario"`
+			Arm      string `json:"arm"`
+		} `json:"replay"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&rec); err != nil {
+		t.Fatal(err)
+	}
+	total := 0
+	for _, s := range rec.Summary {
+		total += s.Runs
+	}
+	if total != rec.TotalRuns || rec.TotalRuns == 0 {
+		t.Errorf("samenvatting telt %d runs, totaal zegt %d", total, rec.TotalRuns)
+	}
+	if len(rec.Replay) != 2*len(rec.Scenarios) {
+		t.Errorf("%d opnames voor %d scenario's, verwacht twee per scenario", len(rec.Replay), len(rec.Scenarios))
+	}
+	if strings.Contains(string(indexHTML), "chaos-run") {
+		t.Error("de pagina noemt een startcommando; deze Route heeft geen login")
+	}
+}

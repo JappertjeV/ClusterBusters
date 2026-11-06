@@ -130,6 +130,7 @@ dezelfde scan als de metrics.
 
 - `/`: de pagina (`web/index.html`, ingebouwd in de binary; lettertype en logo zitten in het bestand)
 - `/api/status`: de laatste scan als JSON. De pagina ververst elke 15 seconden.
+- `/api/resilience`: opgenomen foutruns uit `web/resilience-runs.json`, voor de pagina Resilience. Vaste data van een lokaal kind-cluster, niet live en niet van dit cluster. De pagina kan geen fouten starten: de Route heeft geen login.
 
 Openen via de Route:
 
