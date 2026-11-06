@@ -22,6 +22,21 @@ Elke bevinding krijgt een ernst (**blocker**, **warning** of **info**), een uitl
 De score is 100 − 25 per blocker − 5 per warning, minimaal 0. "Klaar voor upgrade" betekent: geen
 blockers en alle checks gelukt.
 
+### Werkt voor elke OpenShift-versie
+
+Er staat nergens een OpenShift-versie vast. Bij elke scan leest de exporter de huidige versie uit de
+`ClusterVersion` en beoordeelt hij tegen de minor daarna: op 4.17 is het doel 4.18, na de upgrade naar
+4.18 vanzelf 4.19. Wat versie-afhankelijk is, rekent hij uit:
+
+- welke verouderde API's in de doelversie verdwijnen (Kubernetes 1.N hoort bij OpenShift 4.(N−13));
+- of een Operator de doelversie ondersteunt (`olm.maxOpenShiftVersion`);
+- welke admin-gates en bekende update-risico's het cluster zelf meldt;
+- het voorgestelde update-channel (`stable-<huidige minor>`).
+
+Wil je tegen een andere versie beoordelen, bijvoorbeeld een sprong van 4.16 naar 4.18, zet dan
+`TARGET_VERSION` in `base/exporter-deployment.yaml` en merge dat. Perses en de KPN-pagina tonen
+welke versie nu en welke als doel gebruikt wordt (metric `upgrade_readiness_version_info`).
+
 ## Hoe het werkt
 
 ```

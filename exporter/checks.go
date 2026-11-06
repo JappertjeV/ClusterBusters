@@ -35,10 +35,11 @@ var unsupportedOperatorResources = []string{
 	"openshiftapiservers", "authentications", "networks", "consoles",
 }
 
-// Prometheus-labels worden onleesbaar in een tabel als ze te lang zijn.
+// Prometheus-labels worden onleesbaar in een tabel als ze te lang zijn. Ruim genoeg dat een
+// commando aan het eind van een fix-tekst niet wordt afgekapt.
 func clip(s string) string {
 	s = strings.Join(strings.Fields(s), " ")
-	const max = 240
+	const max = 400
 	if len(s) > max {
 		return s[:max] + "…"
 	}
@@ -112,7 +113,7 @@ func checkClusterVersion(ctx context.Context, s *Scanner) ([]Finding, error) {
 	if c := conds["RetrievedUpdates"]; c.Status == "False" {
 		out = append(out, Finding{Severity: Info, Resource: res,
 			Title: withMessage("Cluster kan geen beschikbare updates ophalen", c),
-			Fix:   "Stel een update-channel in (`oc adm upgrade channel stable-4.N`) en controleer of de update-service bereikbaar is. Zonder dit ziet het cluster geen updates."})
+			Fix:   "Stel een update-channel in (" + channelCommand(s.current) + ") en controleer of de update-service bereikbaar is. Zonder dit ziet het cluster geen updates."})
 	}
 
 	// Bekende risico's van beschikbare updates.
@@ -164,7 +165,7 @@ func checkClusterVersion(ctx context.Context, s *Scanner) ([]Finding, error) {
 		}
 		out = append(out, Finding{Severity: Warning, Resource: "ConfigMap openshift-config/admin-acks",
 			Title: clip("Admin-gate niet bevestigd: " + key + ": " + gateData[key]),
-			Fix:   clip(fmt.Sprintf(`Lees de gate, los op wat erin staat en bevestig: oc -n openshift-config patch cm admin-acks --type=merge -p '{"data":{"%s":"true"}}'`, key))})
+			Fix:   clip(fmt.Sprintf(`Lees de gate, los op wat erin staat en bevestig: oc -n openshift-config patch cm admin-acks --type=merge -p "data: {%s: 'true'}"`, key))})
 	}
 	return out, nil
 }
@@ -302,7 +303,7 @@ func installPlanFindings(ctx context.Context, s *Scanner) ([]Finding, error) {
 		csvs, _, _ := unstructured.NestedStringSlice(ip.Object, "spec", "clusterServiceVersionNames")
 		out = append(out, Finding{Severity: Warning, Resource: fmt.Sprintf("InstallPlan %s/%s", ns, name),
 			Title: clip("Operator-update wacht op handmatige goedkeuring: " + strings.Join(csvs, ", ")),
-			Fix:   clip(fmt.Sprintf(`Werk Operators bij vóór de cluster-upgrade. Keur goed in de console (Operators → Installed Operators) of met: oc -n %s patch installplan %s --type merge -p "{\"spec\":{\"approved\":true}}"`, ns, name))})
+			Fix:   clip(fmt.Sprintf(`Werk Operators bij vóór de cluster-upgrade. Keur goed in de console (Operators → Installed Operators) of met: oc -n %s patch installplan %s --type=merge -p "spec: {approved: true}"`, ns, name))})
 	}
 	return out, nil
 }
@@ -386,7 +387,7 @@ func checkNodes(ctx context.Context, s *Scanner) ([]Finding, error) {
 		}
 		if paused, _, _ := unstructured.NestedBool(p.Object, "spec", "paused"); paused {
 			out = append(out, Finding{Severity: Warning, Resource: res, Title: "MachineConfigPool staat op paused",
-				Fix: fmt.Sprintf(`Nodes in deze pool krijgen de upgrade niet. Zet hem aan met: oc patch mcp %s --type=merge -p '{"spec":{"paused":false}}'`, name)})
+				Fix: fmt.Sprintf(`Nodes in deze pool krijgen de upgrade niet. Zet hem aan met: oc patch mcp %s --type=merge -p "spec: {paused: false}"`, name)})
 		}
 		if c := conds["Updated"]; c.Status != "True" {
 			out = append(out, Finding{Severity: Warning, Resource: res, Title: withMessage("MachineConfigPool is nog niet Updated", c),
@@ -409,17 +410,18 @@ func checkPDBs(ctx context.Context, s *Scanner) ([]Finding, error) {
 		if !s.includePlatform && isPlatformNamespace(ns) {
 			continue
 		}
-		res := fmt.Sprintf("PodDisruptionBudget %s/%s", ns, pdb.GetName())
+		name := pdb.GetName()
+		res := fmt.Sprintf("PodDisruptionBudget %s/%s", ns, name)
 		expected, _, _ := unstructured.NestedInt64(pdb.Object, "status", "expectedPods")
 		allowed, _, _ := unstructured.NestedInt64(pdb.Object, "status", "disruptionsAllowed")
 		switch {
 		case expected == 0:
 			out = append(out, Finding{Severity: Warning, Resource: res, Title: "PDB matcht geen enkele pod",
-				Fix: "Controleer de selector van de PDB, of verwijder de PDB als de workload niet meer bestaat."})
+				Fix: fmt.Sprintf("Controleer de selector van de PDB, of verwijder hem als de workload niet meer bestaat: oc delete pdb %s -n %s", name, ns)})
 		case allowed == 0:
 			out = append(out, Finding{Severity: Blocker, Resource: res,
 				Title: fmt.Sprintf("PDB staat 0 disruptions toe (%d pods) en blokkeert node-drain", expected),
-				Fix:   "Zet maxUnavailable: 1 in de PDB, of schaal de workload op naar meer replicas dan minAvailable."})
+				Fix:   fmt.Sprintf(`Zet maxUnavailable: 1 in de PDB, of schaal de workload op naar meer replicas dan minAvailable. Met: oc patch pdb %s -n %s --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"`, name, ns)})
 		}
 	}
 	return out, nil
@@ -602,7 +604,7 @@ func checkUnsupported(ctx context.Context, s *Scanner) ([]Finding, error) {
 		}
 		out = append(out, Finding{Severity: Blocker, Resource: obj.GetKind() + " cluster",
 			Title: "unsupportedConfigOverrides is gezet",
-			Fix:   fmt.Sprintf(`Niet ondersteund en blokkeert upgrades. Verwijder het: oc patch %s.operator.openshift.io cluster --type=merge -p '{"spec":{"unsupportedConfigOverrides":null}}'`, r)})
+			Fix:   fmt.Sprintf(`Niet ondersteund en blokkeert upgrades. Verwijder het: oc patch %s.operator.openshift.io cluster --type=merge -p "spec: {unsupportedConfigOverrides: null}"`, r)})
 	}
 
 	pods, err := s.client.Resource(gvrPod).List(ctx, metav1.ListOptions{FieldSelector: "status.phase=Running"})
@@ -640,4 +642,13 @@ func isEmpty(v interface{}) bool {
 		return t == ""
 	}
 	return false
+}
+
+// channelCommand: het commando om het update-channel op de huidige minor te zetten, zodat het niet
+// aan één OpenShift-versie vastzit. Bij een onbekende versie een plaatshouder.
+func channelCommand(current string) string {
+	if v, err := parseMinor(current); err == nil {
+		return fmt.Sprintf("`oc adm upgrade channel stable-%s`", v)
+	}
+	return "`oc adm upgrade channel stable-<major.minor>`"
 }

@@ -28,6 +28,16 @@ spec:
           image: image-registry.openshift-image-registry.svc:5000/clusterbusters/upgrade-readiness-exporter:latest
           # Nodig omdat de tag latest bij elke build naar een nieuw image wijst.
           imagePullPolicy: Always
+          env:
+            # Leeg: de exporter neemt de minor na de huidige clusterversie, dus bij elke nieuwe
+            # OpenShift-versie schuift het doel vanzelf mee. Zet hier bv. "4.20" om tegen een
+            # vaste versie te beoordelen (handig om een sprong over meerdere minors te checken).
+            - name: TARGET_VERSION
+              value: ""
+            - name: INCLUDE_PLATFORM
+              value: "false"
+            - name: SCAN_INTERVAL
+              value: "60"
           ports:
             - name: metrics
               containerPort: 8080

@@ -146,7 +146,7 @@ footer{border-top:1px solid var(--line);padding-block:24px;font-size:.8125rem;co
   <nav class="menu" id="menu" aria-label="Pagina's"></nav>
 </div></header>
 <main class="wrap" id="app"></main>
-<footer><div class="wrap">Ontwerp voor de KPN-hackathon, geen KPN-product. Live data uit de upgrade-readiness-exporter; alleen de pagina Demo toont voorbeeldwaarden. Kleuren en lettertype komen uit de openbare KPN-tokens, de illustraties zijn eigen tekeningen.</div></footer>
+<footer><div class="wrap">Ontwerp voor de KPN-hackathon, geen KPN-product. Live data uit de upgrade-readiness-exporter; de pagina Demo rekent vanaf de huidige stand van het cluster. Kleuren en lettertype komen uit de openbare KPN-tokens, de illustraties zijn eigen tekeningen.</div></footer>
 
 <script>
 // Live versie van het KPN-ontwerp: alle cijfers komen uit /api/status van de exporter.
@@ -261,9 +261,9 @@ const V={
     ${platformCards(false)}
     ${p&&p.error?`<p class="note" style="color:var(--bad)">Niet alle platform-metrics konden worden opgehaald: ${esc(p.error)}</p>`:''}
     <section class="stack"><h2>Verouderde API's in gebruik</h2>${p&&p.deprecatedAPIs.length?`<div class="tablebox"><table style="min-width:620px"><thead><tr><th>Groep</th><th>Versie</th><th>Resource</th><th>Verdwijnt in</th></tr></thead><tbody>${p.deprecatedAPIs.map(r=>`<tr><td><code>${esc(r.group||'core')}</code></td><td><code>${esc(r.version)}</code></td><td><code>${esc(r.resource)}</code></td><td>${r.removedRelease?`<strong style="color:var(--warn)">${esc(r.removedRelease)}</strong>`:'<span style="color:var(--muted)">niet bekend</span>'}</td></tr>`).join('')}</tbody></table></div>`:okBox(p?'Geen verouderde API\'s in gebruik.':'Geen data: Thanos niet bereikbaar.')}<p class="note">Live uit Thanos, metric apiserver_requested_deprecated_apis.</p></section></div>`},
-  demo:()=>`<div class="view"><div><div class="head"><h1>Demo: vóór en na de live fix</h1><span class="sample">Voorbeeld</span></div><p class="lede">Uitleg van het demo-scenario, met cijfers berekend met de scoreformule vanaf een schone beginstand (score 100). Wat er nu echt op het cluster staat, zie je bij Overzicht en Fixen.</p></div>
-    <section class="cards"><div class="stack"><h2>Vóór: demo kapot</h2>${ring(65,'rv','Vóór de fix')}</div><div class="stack"><h2>Na: PDB gefixt</h2>${ring(90,'rn','Na de fix')}</div></section>
-    <section class="stack"><h2>Speel het stap voor stap af</h2><div>${seg('st',DEMO.map((s,i)=>[String(i),s.step]),'1')}</div><div class="fix" style="background:var(--subtle)"><code id="cmd" style="overflow-wrap:anywhere"></code></div><p id="demotxt" style="margin:0"></p></section></div>`,
+  demo:()=>{const d=demoScores();return `<div class="view"><div><div class="head"><h1>Demo: vóór en na de live fix</h1></div><p class="lede">${d.live?`Berekend vanaf de huidige stand van het cluster zonder demo: score ${d.base}.`:'Nog geen scan: berekend vanaf een schoon cluster (score 100).'} De commando's werken in cmd, PowerShell en bash, zonder lokale kopie van de repo.</p>${d.active?`<p class="note" style="color:var(--warn);margin-top:8px">De demo staat nu op het cluster (namespace clusterbusters-demo).</p>`:''}</div>
+    <section class="cards"><div class="stack"><h2>Vóór: demo kapot</h2>${ring(d.kapot,'rv','Vóór de fix')}</div><div class="stack"><h2>Na: PDB gefixt</h2>${ring(d.gefixt,'rn','Na de fix')}</div></section>
+    <section class="stack"><h2>Speel het stap voor stap af</h2><div>${seg('st',DEMO.map((s,i)=>[String(i),s.step]),'1')}</div><div class="fix" style="background:var(--subtle);align-items:center"><code id="cmd" style="overflow-wrap:anywhere;flex:1"></code><button id="copy" class="btn btn-lime" style="border:0;cursor:pointer;min-height:36px;padding:4px 18px" type="button">Kopieer</button></div><p id="demotxt" style="margin:0"></p><p class="note">Reken op 1 à 2 minuten per stap: de exporter scant elke 60 seconden.</p></section></div>`},
   perses:()=>{const R=[
     ['kan','Kleuren uit deze huisstijl','Thresholds en colorMode op de tellers, cellSettings in tabellen, vaste lijnkleur op de grafiek.'],
     ['kan','Scorering','GaugeChart met thresholds en max 100. De vorm kiest Perses.'],
@@ -282,28 +282,39 @@ const V={
     ['niet',"Losse pagina's en menu",'Eén dashboard is één lange pagina. Secties vervangen hier het menu.']
   ];return `<div class="view"><div><h1>Wat kan in Perses, en wat niet</h1><p class="lede">Daarom bestaat deze pagina: de exporter serveert hem zelf, zodat de volledige huisstijl wel kan. Het Perses-dashboard in de OpenShift-console blijft de officiële weergave.</p></div><div class="tablebox"><table style="min-width:760px"><thead><tr><th>Haalbaar</th><th>In dit ontwerp</th><th>In Perses</th></tr></thead><tbody>${R.map(r=>`<tr><td><span class="tag t-${r[0]}">${{kan:'Kan',deels:'Deels',niet:'Kan niet'}[r[0]]}</span></td><td><strong>${r[1]}</strong></td><td>${r[2]}</td></tr>`).join('')}</tbody></table></div></div>`}
 };
+const RAW='https://raw.githubusercontent.com/JappertjeV/ClusterBusters/main/';
 const DEMO=[
-  {step:'Beginstand',score:100,cmd:'Schoon cluster: geen bevindingen.',txt:'Score 100, antwoord Ja.'},
-  {step:'Demo kapot',score:65,cmd:'oc apply -f testcases/demo-kapot.yaml',txt:'1 blocker (PDB) en 2 warnings (PDB zonder pods, losse pod): 100 − 25 − 5 − 5 = 65.'},
-  {step:'PDB gefixt',score:90,cmd:'oc patch pdb demo-app -n clusterbusters-demo --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"',txt:'De blocker is weg, de 2 warnings blijven: 100 − 5 − 5 = 90.'},
-  {step:'Opgeruimd',score:100,cmd:'oc delete namespace clusterbusters-demo',txt:'Alles weg: terug naar 100.'}
+  {step:'Beginstand',cmd:'',txt:d=>`Zonder demo: score ${d.base}. Dit is wat je bij Overzicht ziet voordat je begint.`},
+  {step:'Demo kapot',cmd:`oc apply -f ${RAW}testcases/demo-kapot.yaml`,txt:d=>`1 blocker (PDB) en 2 warnings (PDB zonder pods, losse pod): ${d.base} − 25 − 5 − 5 = ${d.kapot}${d.base<35?' (de score gaat niet onder 0)':''}.`},
+  {step:'PDB gefixt',cmd:'oc patch pdb demo-app -n clusterbusters-demo --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"',txt:d=>`De blocker is weg, de 2 warnings blijven: score ${d.gefixt}.`},
+  {step:'Opgeruimd',cmd:'oc delete namespace clusterbusters-demo',txt:d=>`Alles weg: terug naar ${d.base}.`}
 ];
+// Scores van de demo, gerekend vanaf de live stand zonder de bevindingen van de demo zelf.
+function demoScores(){const live=!!(D&&D.scanned);let b=0,w=0,active=false;
+  if(live)for(const f of D.findings){if(f.resource.includes('clusterbusters-demo/')){active=true;continue}if(f.severity==='blocker')b++;else if(f.severity==='warning')w++}
+  const base=Math.max(0,100-25*b-5*w);return {live,active,base,kapot:Math.max(0,base-35),gefixt:Math.max(0,base-10)}}
 
 const app=document.getElementById('app'),menu=document.getElementById('menu'),meta=document.getElementById('meta');
 menu.innerHTML=PAGES.map(([id,l])=>`<a href="#${id}" data-p="${id}">${l}</a>`).join('');
 function bindSeg(id,fn){const el=document.getElementById(id);if(!el)return;placeSeg(el);el.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const prev=el.querySelector('[aria-pressed="true"]')?.dataset.v;el.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));placeSeg(el);fn(b.dataset.v,prev)})}
-function demoStep(k,prev){const s=DEMO[+k];document.getElementById('cmd').textContent=s.cmd;document.getElementById('demotxt').textContent=s.txt}
+function demoStep(k){const s=DEMO[+k],d=demoScores(),c=document.getElementById('cmd'),b=document.getElementById('copy');
+  c.textContent=s.cmd||'Geen commando: kijk eerst bij Overzicht hoe het cluster ervoor staat.';b.hidden=!s.cmd;b.textContent='Kopieer';
+  b.onclick=()=>{const done=()=>{b.textContent='Gekopieerd'};
+    // navigator.clipboard werkt alleen via https of localhost; anders de tekst selecteren.
+    if(navigator.clipboard)navigator.clipboard.writeText(s.cmd).then(done,()=>selectCmd(c));else selectCmd(c)};
+  document.getElementById('demotxt').textContent=s.txt(d)}
+function selectCmd(el){const r=document.createRange();r.selectNodeContents(el);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}
 
 // render: bij navigeren naar boven scrollen, bij een live verversing de scrollpositie houden.
 function render(nav){const p=PAGES.some(x=>x[0]===location.hash.slice(1))?location.hash.slice(1):'overzicht';
   menu.querySelectorAll('a').forEach(a=>a.dataset.p===p?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current'));
-  if(!nav&&!LIVE.has(p))return;
+  if(!nav&&!LIVE.has(p)&&!(p==='demo'&&current!=='demo-live'&&D&&D.scanned))return;
   const y=scrollY;
   app.innerHTML=LIVE.has(p)&&!(D&&D.scanned)?waiting():V[p]();
   if(p==='overzicht'&&D&&D.scanned){animateRing('r0',nav?0:lastScore,D.score)}
-  if(p==='demo'){animateRing('rv',0,65);animateRing('rn',0,90);demoStep('1');bindSeg('st',k=>demoStep(k))}
+  if(p==='demo'){const d=demoScores();animateRing('rv',0,d.kapot);animateRing('rn',0,d.gefixt);demoStep('1');bindSeg('st',k=>demoStep(k))}
   if(p==='fixen')bindSeg('fx',k=>{fxFilter=k;document.getElementById('fxt').innerHTML=fixTable()});
-  current=p;
+  current=p==='demo'&&D&&D.scanned?'demo-live':p;
   if(nav)window.scrollTo(0,0);else window.scrollTo(0,y)}
 
 function renderMeta(){if(offline){meta.textContent='geen verbinding met de exporter';return}

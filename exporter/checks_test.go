@@ -294,6 +294,7 @@ func TestMetricsOutput(t *testing.T) {
 		`upgrade_readiness_check_up{check="pdb"} 1`,
 		`upgrade_readiness_check_up{check="olm"} 0`,
 		"upgrade_readiness_last_scan_timestamp_seconds",
+		`upgrade_readiness_version_info{current_version="onbekend",target_version="onbekend"} 1`,
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("ontbreekt in /metrics: %s", want)
@@ -367,5 +368,57 @@ func TestRetrievedUpdatesIsInfo(t *testing.T) {
 	}
 	if res.Score != 100 || !res.Ready {
 		t.Errorf("info mag score en ready niet raken: %d %v", res.Score, res.Ready)
+	}
+}
+
+// Elk commando in een fix moet in cmd, PowerShell en bash werken: geen JSON met aanhalingstekens
+// erin, want die breken in cmd (enkele quotes) of PowerShell (\").
+func TestFixCommandsAreShellSafe(t *testing.T) {
+	objs := append(healthyCluster(),
+		obj("policy/v1", "PodDisruptionBudget", "demo", "blocking", map[string]interface{}{
+			"status": map[string]interface{}{"expectedPods": int64(1), "disruptionsAllowed": int64(0)}}),
+		obj("policy/v1", "PodDisruptionBudget", "demo", "orphan", map[string]interface{}{
+			"status": map[string]interface{}{"expectedPods": int64(0)}}),
+		obj("v1", "ConfigMap", "openshift-config-managed", "admin-gates", map[string]interface{}{
+			"data": map[string]interface{}{"ack-4.17-kube-1.31-api-removals-in-4.18": "lees dit"}}),
+		obj("machineconfiguration.openshift.io/v1", "MachineConfigPool", "", "worker", map[string]interface{}{
+			"spec": map[string]interface{}{"paused": true}, "status": conds("Updated", "True")}),
+		obj("operator.openshift.io/v1", "KubeAPIServer", "", "cluster", map[string]interface{}{
+			"spec": map[string]interface{}{"unsupportedConfigOverrides": map[string]interface{}{"a": "b"}}}),
+		obj("operators.coreos.com/v1alpha1", "InstallPlan", "ops", "install-1", map[string]interface{}{
+			"spec": map[string]interface{}{"approved": false}, "status": map[string]interface{}{"phase": "RequiresApproval"}}),
+	)
+	cv := objs[0].(*unstructured.Unstructured)
+	list, _, _ := unstructured.NestedSlice(cv.Object, "status", "conditions")
+	list = append(list, map[string]interface{}{"type": "RetrievedUpdates", "status": "False"})
+	_ = unstructured.SetNestedSlice(cv.Object, list, "status", "conditions")
+
+	res := newScanner(t, objs...).Scan(context.Background())
+	patches := 0
+	for _, f := range res.Findings {
+		if strings.Contains(f.Fix, "'{") || strings.Contains(f.Fix, `\"`) || strings.Contains(f.Fix, "…") {
+			t.Errorf("%s: fix niet shell-veilig of afgekapt: %s", f.Resource, f.Fix)
+		}
+		if strings.Contains(f.Fix, "oc patch") || strings.Contains(f.Fix, "patch cm") || strings.Contains(f.Fix, "patch installplan") {
+			patches++
+		}
+	}
+	if patches != 5 {
+		t.Errorf("verwacht 5 patch-commando's, kreeg %d", patches)
+	}
+	for _, f := range res.Findings {
+		switch f.Resource {
+		case "PodDisruptionBudget demo/blocking":
+			if !strings.Contains(f.Fix, "oc patch pdb blocking -n demo") {
+				t.Errorf("PDB-fix zonder commando: %s", f.Fix)
+			}
+		case "ClusterVersion version":
+			if f.Severity == Info && !strings.Contains(f.Fix, "stable-4.17") {
+				t.Errorf("channel hoort de huidige minor te volgen: %s", f.Fix)
+			}
+		}
+	}
+	if res.CurrentVersion != "4.17.3" || res.TargetVersion != "4.18" {
+		t.Errorf("versies: %q -> %q", res.CurrentVersion, res.TargetVersion)
 	}
 }
