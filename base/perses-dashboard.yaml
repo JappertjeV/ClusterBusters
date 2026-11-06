@@ -153,6 +153,30 @@ spec:
                   spec:
                     query: time() - max(upgrade_readiness_last_scan_timestamp_seconds)
 
+      readiness-version:
+        kind: Panel
+        spec:
+          display:
+            name: "Versie"
+            description: "Huidige clusterversie en de doelversie waarop de checks beoordeeld zijn. Het doel schuift vanzelf mee met de clusterversie, tenzij TARGET_VERSION is gezet."
+          plugin:
+            kind: Table
+            spec:
+              density: compact
+              defaultColumnHidden: true
+              columnSettings:
+                - name: current_version
+                  header: Nu
+                - name: target_version
+                  header: Doel
+          queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: max by (current_version, target_version) (upgrade_readiness_version_info)
+
       readiness-fixes:
         kind: Panel
         spec:
@@ -531,34 +555,40 @@ spec:
             # Vijf tellers over de volle breedte van 24
             - x: 0
               y: 0
-              width: 6
+              width: 5
               height: 6
               content:
                 $ref: "#/spec/panels/readiness-score"
-            - x: 6
+            - x: 5
               y: 0
-              width: 6
+              width: 5
               height: 6
               content:
                 $ref: "#/spec/panels/readiness-ready"
-            - x: 12
+            - x: 10
               y: 0
-              width: 4
+              width: 3
               height: 6
               content:
                 $ref: "#/spec/panels/readiness-blockers"
+            - x: 13
+              y: 0
+              width: 3
+              height: 6
+              content:
+                $ref: "#/spec/panels/readiness-warnings"
             - x: 16
               y: 0
               width: 4
               height: 6
               content:
-                $ref: "#/spec/panels/readiness-warnings"
+                $ref: "#/spec/panels/readiness-scan-age"
             - x: 20
               y: 0
               width: 4
               height: 6
               content:
-                $ref: "#/spec/panels/readiness-scan-age"
+                $ref: "#/spec/panels/readiness-version"
       - kind: Grid
         spec:
           display:

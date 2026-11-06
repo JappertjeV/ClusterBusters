@@ -90,6 +90,7 @@ Regels:
 | `upgrade_readiness_finding` | `check`, `category`, `severity`, `resource`, `title`, `fix` | altijd 1 (info-metric: de tekst zit in de labels) |
 | `upgrade_readiness_check_up` | `check` | 1 = check gelukt, 0 = fout (bv. geen rechten) |
 | `upgrade_readiness_last_scan_timestamp_seconds` | – | unix-tijd van de laatste scan |
+| `upgrade_readiness_version_info` | `current_version`, `target_version` | altijd 1 (info-metric: welke versie beoordeeld is) |
 
 - `severity` is één van `blocker`, `warning` of `info`.
 - **Roep `Reset()` aan op de GaugeVecs bij elke scan**, anders blijven opgeloste bevindingen in beeld.

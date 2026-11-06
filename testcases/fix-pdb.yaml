@@ -1,5 +1,6 @@
 # Merge-patch die een blokkerende PDB repareert: minAvailable eruit, maxUnavailable 1 erin.
-# Als bestand, zodat het commando ook in de Windows-opdrachtprompt werkt (geen JSON-quotes).
+# De README's gebruiken dezelfde patch inline: -p "spec: {minAvailable: null, maxUnavailable: 1}".
+# Dit bestand is voor wie liever --patch-file=testcases/fix-pdb.yaml gebruikt vanuit een lokale kopie.
 spec:
   minAvailable: null
   maxUnavailable: 1

@@ -6,8 +6,9 @@ het en draait selfHeal elke live fix terug.
 De exporter scant elke 60 seconden en wordt elke 60 seconden gescrapet. Reken op maximaal 2 minuten
 voordat een wijziging op het dashboard staat.
 
-De commando's werken ook in de Windows-opdrachtprompt: patches staan in bestanden, niet als JSON op
-de opdrachtregel.
+Alle commando's werken zonder lokale kopie van de repo: `oc apply` leest de bestanden van GitHub.
+Ze werken ook in de Windows-opdrachtprompt en PowerShell: de patches zijn YAML zonder aanhalingstekens
+erin. Alleen de status-patch van de nep-ClusterOperator vraagt een lokale kopie (zie daar).
 
 ## Demo: van rood naar beter
 
@@ -16,7 +17,7 @@ Kort scenario voor de presentatie.
 1. Maak de problemen aan:
 
    ```bash
-   oc apply -f testcases/demo-kapot.yaml
+   oc apply -f https://raw.githubusercontent.com/JappertjeV/ClusterBusters/main/testcases/demo-kapot.yaml
    ```
 
    Het dashboard toont 1 blocker en 2 warnings extra, met per bevinding de oplossing. De score daalt met 35 punten.
@@ -24,7 +25,7 @@ Kort scenario voor de presentatie.
 2. Fix de blocker live:
 
    ```bash
-   oc patch pdb demo-app -n clusterbusters-demo --type=merge --patch-file=testcases/fix-pdb.yaml
+   oc patch pdb demo-app -n clusterbusters-demo --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"
    ```
 
    De blocker verdwijnt en de score stijgt met 25 punten.
@@ -42,7 +43,7 @@ Kort scenario voor de presentatie.
 exporter het verschil ziet tussen goed en kapot. Er is geen cluster-admin voor nodig.
 
 ```bash
-oc apply -f testcases/testomgeving.yaml
+oc apply -f https://raw.githubusercontent.com/JappertjeV/ClusterBusters/main/testcases/testomgeving.yaml
 ```
 
 | Onderdeel | Wat het is | Verwacht op het dashboard |
@@ -67,10 +68,10 @@ cert-manager-Operator. Bestaat dat package niet in de catalogus van het cluster,
 Live fixen, één voor één:
 
 ```bash
-oc patch pdb kapot-een-replica -n clusterbusters-test --type=merge --patch-file=testcases/fix-pdb.yaml
+oc patch pdb kapot-een-replica -n clusterbusters-test --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"
 ```
 ```bash
-oc patch pdb kapot-max-nul -n clusterbusters-test --type=merge --patch-file=testcases/fix-pdb.yaml
+oc patch pdb kapot-max-nul -n clusterbusters-test --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"
 ```
 ```bash
 oc delete pdb kapot-weesje -n clusterbusters-test
@@ -87,7 +88,7 @@ De API-client geeft na het stoppen nog 24 uur een bevinding: zo lang onthoudt AP
 Opruimen:
 
 ```bash
-oc delete -f testcases/testomgeving.yaml
+oc delete -f https://raw.githubusercontent.com/JappertjeV/ClusterBusters/main/testcases/testomgeving.yaml
 ```
 
 ## Optioneel: nep-ClusterOperator (cluster-admin)
@@ -96,8 +97,10 @@ Platform-onderdelen maak je liever niet echt kapot. Deze nep-ClusterOperator mel
 en `Upgradeable=False`. Er draait niets achter, het is alleen een statusobject.
 
 ```bash
-oc apply -f testcases/nep-clusteroperator.yaml
+oc apply -f https://raw.githubusercontent.com/JappertjeV/ClusterBusters/main/testcases/nep-clusteroperator.yaml
 ```
+Deze patch leest een bestand, dus voer hem uit in de map van je lokale kopie van de repo, na `git pull`:
+
 ```bash
 oc patch clusteroperator clusterbusters-nep --subresource=status --type=merge --patch-file=testcases/nep-clusteroperator-status.yaml
 ```

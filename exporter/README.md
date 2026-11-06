@@ -43,6 +43,7 @@ de andere checks lopen door.
 | `upgrade_readiness_finding` | `check`, `category`, `severity`, `resource`, `title`, `fix` | altijd 1 |
 | `upgrade_readiness_check_up` | `check` | 1 = gelukt, 0 = fout |
 | `upgrade_readiness_last_scan_timestamp_seconds` | | unix-tijd laatste scan |
+| `upgrade_readiness_version_info` | `current_version`, `target_version` | altijd 1 |
 
 Elke scan vervangt alle bevindingen, dus wat opgelost is verdwijnt bij de volgende scan.
 
@@ -51,7 +52,7 @@ Elke scan vervangt alle bevindingen, dus wat opgelost is verdwijnt bij de volgen
 | Env | Standaard | |
 |---|---|---|
 | `SCAN_INTERVAL` | `60` | seconden tussen scans |
-| `TARGET_VERSION` | leeg | doelversie, bv. `4.19`; leeg = de minor na de huidige |
+| `TARGET_VERSION` | leeg | doelversie, bv. `4.19`; leeg = de minor na de huidige, dus het doel schuift mee met elke upgrade. Staat in `base/exporter-deployment.yaml` |
 | `INCLUDE_PLATFORM` | `false` | ook platform-namespaces meenemen |
 | `LISTEN_ADDR` | `:8080` | |
 | `THANOS_URL` | `https://thanos-querier.openshift-monitoring.svc:9091` | voor `deprecated_apis`; buiten het cluster faalt die check, tenzij je een bereikbaar adres opgeeft |

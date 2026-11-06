@@ -14,7 +14,7 @@ type collector struct {
 	res  *Result
 	hist []historyPoint
 
-	score, ready, findings, finding, checkUp, lastScan *prometheus.Desc
+	score, ready, findings, finding, checkUp, lastScan, version *prometheus.Desc
 }
 
 func newCollector() *collector {
@@ -32,6 +32,9 @@ func newCollector() *collector {
 			"1 als de check gelukt is, 0 bij een fout (bijvoorbeeld geen rechten).", []string{"check"}, nil),
 		lastScan: prometheus.NewDesc("upgrade_readiness_last_scan_timestamp_seconds",
 			"Unix-tijd van de laatste afgeronde scan.", nil, nil),
+		version: prometheus.NewDesc("upgrade_readiness_version_info",
+			"Altijd 1. De huidige clusterversie en de doelversie waarop de checks beoordeeld zijn.",
+			[]string{"current_version", "target_version"}, nil),
 	}
 }
 
@@ -73,7 +76,7 @@ func (c *collector) snapshot() (*Result, []historyPoint) {
 }
 
 func (c *collector) Describe(ch chan<- *prometheus.Desc) {
-	for _, d := range []*prometheus.Desc{c.score, c.ready, c.findings, c.finding, c.checkUp, c.lastScan} {
+	for _, d := range []*prometheus.Desc{c.score, c.ready, c.findings, c.finding, c.checkUp, c.lastScan, c.version} {
 		ch <- d
 	}
 }
@@ -93,6 +96,8 @@ func (c *collector) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(c.score, prometheus.GaugeValue, float64(r.Score))
 	ch <- prometheus.MustNewConstMetric(c.ready, prometheus.GaugeValue, ready)
 	ch <- prometheus.MustNewConstMetric(c.lastScan, prometheus.GaugeValue, float64(r.Timestamp.Unix()))
+	ch <- prometheus.MustNewConstMetric(c.version, prometheus.GaugeValue, 1,
+		orUnknown(r.CurrentVersion), orUnknown(r.TargetVersion))
 
 	// Ook nullen tonen, zodat sum(...{severity="blocker"}) 0 geeft in plaats van niets.
 	counts := map[[2]string]int{}
