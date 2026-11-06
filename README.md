@@ -175,35 +175,69 @@ Always change things through Git: Argo CD reverts manual changes on the cluster 
 [`testcases/`](testcases/README.md) holds files you apply by hand. They are deliberately outside `base/`,
 because Argo CD would otherwise revert every live fix.
 
-- `demo-kapot.yaml`: the short demo scenario. One blocker and two warnings; the score drops by 35 points
-  and rises by 25 after the live fix. On `crc03` that goes from 70 to 35 and then to 60: the CRC
-  overrides and the deprecated DeploymentConfig API already cost 30 points there. As a result,
-  `UpgradeBlockersPresent` is already firing there before the demo.
+- `demo-kapot.yaml`: the demo scenario below. One blocker and two warnings.
 - `testomgeving.yaml`: good and broken parts side by side (workloads, PDBs, a standalone pod, a client
   of a deprecated API, stuck Operator updates).
 - `nep-clusteroperator.yaml` (optional, cluster-admin): a fake ClusterOperator that reports Degraded,
   without breaking the real platform. Remove it afterwards.
 
-Demo in four steps:
+### Demo: from ready to broken and back
+
+All commands work in cmd, PowerShell and bash, without a local copy of the repository. Allow 1 to 2
+minutes per step: the exporter scans every 60 seconds and Prometheus scrapes every 60 seconds. The
+**Demo** page of the KPN dashboard follows along: it shows the live score, the step the demo is in and
+the next command with a copy button.
+
+**Before you start:** make sure nothing else is broken, otherwise the score cannot visibly change.
+Remove the test environment and the fake ClusterOperator if you used them (a `not found` just means it
+was already gone):
+
+```bash
+oc delete -f https://raw.githubusercontent.com/JappertjeV/ClusterBusters/main/testcases/testomgeving.yaml
+```
+
+```bash
+oc delete clusteroperator clusterbusters-nep
+```
+
+| Step | Command | Score | Ready | What you show |
+|---|---|---|---|---|
+| 0. Baseline | — | 100 | Yes | The two CRC issues are still listed, as accepted info (see [Accepting known issues](#accepting-known-issues-reaching-100)) |
+| 1. Break it | `oc apply` (below) | 65 | Not yet | 1 blocker and 2 warnings appear, each with a concrete fix; after 2 minutes the alert `UpgradeBlockersPresent` fires |
+| 2. Live fix | `oc patch` (below) | 90 | Yes | The blocker disappears, the 2 warnings remain; confetti on the KPN page |
+| 3. Clean up | `oc delete` (below) | 100 | Yes | Back to the baseline |
+
+The score is 100 − 25 per blocker − 5 per warning: 100 − 25 − 5 − 5 = 65, and 100 − 5 − 5 = 90.
+
+**1. Break it.** A Deployment with 1 replica and a PDB with `minAvailable: 1` (blocker: the node drain
+gets stuck), a PDB without pods and a standalone pod (two warnings):
 
 ```bash
 oc apply -f https://raw.githubusercontent.com/JappertjeV/ClusterBusters/main/testcases/demo-kapot.yaml
 ```
 
-Wait 1 to 2 minutes: the dashboard turns red, with a fix for each finding. Then fix the blocker live:
+**2. Fix the blocker live.** This is the command shown as the fix in the table:
 
 ```bash
 oc patch pdb demo-app -n clusterbusters-demo --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"
 ```
 
-The blocker disappears and the score rises. Clean up:
+**3. Clean up:**
 
 ```bash
 oc delete namespace clusterbusters-demo
 ```
 
-Do not run the demo at the same time as the test environment: with too many findings the score stays at
-0 and you will not see it rise after a fix.
+You can repeat the demo as often as you like: step 1 also works straight after step 2, without cleaning
+up first.
+
+**Something not changing?**
+
+- Score stays at 0: too many other findings, for example the test environment. Remove it (see above).
+- Ready stays at "Not yet" without blockers in the table: a check is failing. See the **Checks** page and
+  the exporter logs (`oc logs -n clusterbusters deploy/upgrade-readiness-exporter --tail=5`).
+- No confetti: it fires once when the cluster becomes ready, and when you open the page while it is
+  ready. Reload the page to see it again. It never fires with "reduce motion" turned on.
 
 Test the Go code locally, without a cluster:
 
