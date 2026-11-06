@@ -54,6 +54,7 @@ Elke scan vervangt alle bevindingen, dus wat opgelost is verdwijnt bij de volgen
 | `SCAN_INTERVAL` | `60` | seconden tussen scans |
 | `TARGET_VERSION` | leeg | doelversie, bv. `4.19`; leeg = de minor na de huidige, dus het doel schuift mee met elke upgrade. Staat in `base/exporter-deployment.yaml` |
 | `INCLUDE_PLATFORM` | `false` | ook platform-namespaces meenemen |
+| `ACCEPTED_FINDINGS` | leeg | bekende punten die niet meetellen: reguliere expressies, gescheiden door `;`, gezocht in `<check>/<resource>: <title>`. Een treffer wordt info met "Accepted" ervoor. De Deployment zet de twee CRC-punten (overrides in de ClusterVersion, DeploymentConfig-API) |
 | `LISTEN_ADDR` | `:8080` | |
 | `THANOS_URL` | `https://thanos-querier.openshift-monitoring.svc:9091` | voor `deprecated_apis`; buiten het cluster faalt die check, tenzij je een bereikbaar adres opgeeft |
 

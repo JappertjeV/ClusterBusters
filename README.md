@@ -37,6 +37,19 @@ To assess against another version, for example a jump from 4.16 to 4.18, set `TA
 `base/exporter-deployment.yaml` and merge that. Perses and the KPN page show the current and target
 version (metric `upgrade_readiness_version_info`).
 
+### Accepting known issues (reaching 100%)
+
+Some findings cannot be fixed on a given cluster. On CRC, for example, CRC itself sets overrides in the
+`ClusterVersion` (so it reports `Upgradeable=False`), and the platform itself still calls the
+DeploymentConfig API. List such known issues in `ACCEPTED_FINDINGS` in
+`base/exporter-deployment.yaml`: regular expressions separated by `;`, matched against
+`<check>/<resource>: <title>`. A matching blocker or warning stays visible as **info** with the prefix
+"Accepted", but no longer counts towards the score or "ready". A Failing cluster, a blocking PDB or an
+API that disappears in the target version is never caught by the CRC entries.
+
+The repository ships the two CRC entries. Remove them on a real cluster, where these are issues to fix.
+When the cluster reaches "ready", the KPN page celebrates with confetti.
+
 ## How it works
 
 ```
