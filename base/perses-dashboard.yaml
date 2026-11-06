@@ -8,6 +8,9 @@ spec:
       name: "ClusterBusters: OpenShift Upgrade Readiness"
       description: "Is this cluster ready for the next upgrade? Fix red first, review orange, green is fine. Extended view: the exporter page (oc get route upgrade-readiness -n clusterbusters)."
     duration: 1h
+    # Zonder dit vraagt Perses alleen bij het laden data op: "Last scan" bleef op 54s staan terwijl
+    # de exporter gewoon doorscande.
+    refreshInterval: 30s
     # Vast kleurenschema: groen #00c300/#00a800, rood #c01313, oranje #ff8811/#e3660e.
     # Op #c01313 kiest de StatChart witte tekst; op lichter rood wordt die zwart en slecht leesbaar.
     panels:
