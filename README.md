@@ -160,7 +160,7 @@ oc apply -f https://raw.githubusercontent.com/JappertjeV/ClusterBusters/main/tes
 Wacht 1 à 2 minuten: het dashboard springt op rood, met per bevinding de fix. Fix daarna de blocker live:
 
 ```bash
-oc patch pdb demo-app -n clusterbusters-demo --type=merge -p "{\"spec\":{\"minAvailable\":null,\"maxUnavailable\":1}}"
+oc patch pdb demo-app -n clusterbusters-demo --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"
 ```
 
 De blocker verdwijnt en de score stijgt. Ruim op:

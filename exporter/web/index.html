@@ -285,7 +285,7 @@ const V={
 const DEMO=[
   {step:'Beginstand',score:100,cmd:'Schoon cluster: geen bevindingen.',txt:'Score 100, antwoord Ja.'},
   {step:'Demo kapot',score:65,cmd:'oc apply -f testcases/demo-kapot.yaml',txt:'1 blocker (PDB) en 2 warnings (PDB zonder pods, losse pod): 100 − 25 − 5 − 5 = 65.'},
-  {step:'PDB gefixt',score:90,cmd:'oc patch pdb demo-app -n clusterbusters-demo --type=merge --patch-file=testcases/fix-pdb.yaml',txt:'De blocker is weg, de 2 warnings blijven: 100 − 5 − 5 = 90.'},
+  {step:'PDB gefixt',score:90,cmd:'oc patch pdb demo-app -n clusterbusters-demo --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"',txt:'De blocker is weg, de 2 warnings blijven: 100 − 5 − 5 = 90.'},
   {step:'Opgeruimd',score:100,cmd:'oc delete namespace clusterbusters-demo',txt:'Alles weg: terug naar 100.'}
 ];
 
