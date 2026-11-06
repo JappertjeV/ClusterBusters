@@ -21,6 +21,8 @@ type apiFinding struct {
 	Resource string `json:"resource"`
 	Title    string `json:"title"`
 	Fix      string `json:"fix"`
+	TitleNL  string `json:"titleNl"`
+	FixNL    string `json:"fixNl"`
 }
 
 type apiCheck struct {

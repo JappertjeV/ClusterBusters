@@ -1,122 +1,124 @@
 # ClusterBusters: OpenShift Upgrade Readiness
 
-Is dit OpenShift-cluster klaar voor de volgende upgrade? ClusterBusters controleert het cluster
-elke minuut automatisch en laat per probleem zien wat je moet fixen voordat je upgradet. Zo mislukken
-er minder upgrades.
+Is this OpenShift cluster ready for the next upgrade? ClusterBusters checks the cluster automatically
+every minute and shows, for each problem, what you must fix before you upgrade. That means fewer
+failed upgrades.
 
-Gebouwd voor de KPN-hackathon (5 en 6 november 2026) door een team van drie.
+Built for the KPN hackathon (5 and 6 November 2026) by a team of three.
 
-## Wat het controleert
+## What it checks
 
-| Check | Wat er misgaat bij een upgrade |
+| Check | What goes wrong during an upgrade |
 |---|---|
-| `clusterversion` | Het cluster meldt zelf `Failing` of `Upgradeable=False`, een update loopt al, of een admin-gate is niet bevestigd |
-| `operators` | Een platform-onderdeel (ClusterOperator) is niet Available, is Degraded of blokkeert upgrades |
-| `olm` | Een geïnstalleerde Operator werkt niet, ondersteunt de nieuwe versie niet, of zijn update zit vast of wacht op goedkeuring |
-| `nodes` | Een node is niet Ready, heeft geheugen- of schijfdruk, of een MachineConfigPool is Degraded of gepauzeerd |
-| `pdb` | Een PodDisruptionBudget staat geen enkele evictie toe en laat de node-drain vastlopen |
-| `deprecated_apis` | Er worden API-versies gebruikt die in de nieuwe versie verdwijnen |
-| `unsupported` | Er staan niet-ondersteunde instellingen (`unsupportedConfigOverrides`) of losse pods zonder controller |
+| `clusterversion` | The cluster itself reports `Failing` or `Upgradeable=False`, an update is already running, or an admin gate is not acknowledged |
+| `operators` | A platform component (ClusterOperator) is not Available, is Degraded or blocks upgrades |
+| `olm` | An installed Operator does not work, does not support the new version, or its update is stuck or waiting for approval |
+| `nodes` | A node is not Ready, has memory or disk pressure, or a MachineConfigPool is Degraded or paused |
+| `pdb` | A PodDisruptionBudget allows no evictions and makes the node drain hang |
+| `deprecated_apis` | API versions are in use that disappear in the new version |
+| `unsupported` | Unsupported settings (`unsupportedConfigOverrides`) or standalone pods without a controller exist |
 
-Elke bevinding krijgt een ernst (**blocker**, **warning** of **info**), een uitleg en een concrete fix.
-De score is 100 − 25 per blocker − 5 per warning, minimaal 0. "Klaar voor upgrade" betekent: geen
-blockers en alle checks gelukt.
+Each finding gets a severity (**blocker**, **warning** or **info**), an explanation and a concrete fix.
+The score is 100 − 25 per blocker − 5 per warning, minimum 0. "Ready for upgrade" means: no blockers
+and all checks succeeded.
 
-### Werkt voor elke OpenShift-versie
+### Works for every OpenShift version
 
-Er staat nergens een OpenShift-versie vast. Bij elke scan leest de exporter de huidige versie uit de
-`ClusterVersion` en beoordeelt hij tegen de minor daarna: op 4.17 is het doel 4.18, na de upgrade naar
-4.18 vanzelf 4.19. Wat versie-afhankelijk is, rekent hij uit:
+No OpenShift version is hard-coded. On every scan the exporter reads the current version from
+`ClusterVersion` and assesses against the next minor: on 4.17 the target is 4.18, and after the upgrade
+to 4.18 it becomes 4.19 by itself. It calculates what depends on the version:
 
-- welke verouderde API's in de doelversie verdwijnen (Kubernetes 1.N hoort bij OpenShift 4.(N−13));
-- of een Operator de doelversie ondersteunt (`olm.maxOpenShiftVersion`);
-- welke admin-gates en bekende update-risico's het cluster zelf meldt;
-- het voorgestelde update-channel (`stable-<huidige minor>`).
+- which deprecated APIs disappear in the target version (Kubernetes 1.N belongs to OpenShift 4.(N−13));
+- whether an Operator supports the target version (`olm.maxOpenShiftVersion`);
+- which admin gates and known update risks the cluster itself reports;
+- the suggested update channel (`stable-<current minor>`).
 
-Wil je tegen een andere versie beoordelen, bijvoorbeeld een sprong van 4.16 naar 4.18, zet dan
-`TARGET_VERSION` in `base/exporter-deployment.yaml` en merge dat. Perses en de KPN-pagina tonen
-welke versie nu en welke als doel gebruikt wordt (metric `upgrade_readiness_version_info`).
+To assess against another version, for example a jump from 4.16 to 4.18, set `TARGET_VERSION` in
+`base/exporter-deployment.yaml` and merge that. Perses and the KPN page show the current and target
+version (metric `upgrade_readiness_version_info`).
 
-## Hoe het werkt
+## How it works
 
 ```
-OpenShift API ──► Go-exporter ──► /metrics ──scrape──► Prometheus ──► Thanos Querier ──► Perses-dashboard
+OpenShift API ──► Go exporter ──► /metrics ──scrape──► Prometheus ──► Thanos Querier ──► Perses dashboard
                       │                                     └──► PrometheusRule ──► Alertmanager
-                      └──► /  (KPN-dashboardpagina, live data via /api/status)
+                      └──► /  (KPN dashboard page, live data through /api/status)
 ```
 
-- De **exporter** (Go) leest het cluster via de Kubernetes-API en zet de bevindingen als
-  Prometheus-metrics klaar. Hij schrijft nergens naartoe: Prometheus haalt de metrics zelf op.
-- **User workload monitoring** van OpenShift scrapet de exporter. De **Thanos Querier** voegt die
-  data samen met de platform-metrics.
-- **Perses** (in de OpenShift-console) en de **KPN-pagina** (geserveerd door de exporter zelf) tonen
-  het resultaat. Bij blockers gaat een **alert** af.
-- **Argo CD** rolt alles uit vanuit deze repository.
+- The **exporter** (Go) reads the cluster through the Kubernetes API and exposes the findings as
+  Prometheus metrics. It writes nowhere: Prometheus fetches the metrics itself.
+- OpenShift **user workload monitoring** scrapes the exporter. The **Thanos Querier** combines that
+  data with the platform metrics.
+- **Perses** (in the OpenShift console) and the **KPN page** (served by the exporter itself) show the
+  result. Blockers trigger an **alert**.
+- **Argo CD** rolls everything out from this repository.
 
-## De dashboards openen
+## Opening the dashboards
 
-### KPN-dashboardpagina (aanbevolen)
+### KPN dashboard page (recommended)
 
-De exporter serveert zelf een dashboard in KPN-huisstijl: overzicht, fixes, score in de tijd,
-status van de checks en ruwe platform-metrics. De pagina ververst elke 15 seconden.
+The exporter serves a dashboard in KPN house style: overview, fixes, score over time, check status and
+raw platform metrics. The page refreshes every 15 seconds. It is in English by default; the EN/NL
+switch at the top changes it to Dutch and your browser remembers the choice.
 
-1. Vraag het adres op:
+1. Get the address:
 
    ```bash
    oc get route upgrade-readiness -n clusterbusters
    ```
 
-2. Open de host uit de kolom `HOST/PORT` in je browser, met `https://` ervoor. Op CRC krijg je een
-   certificaatwaarschuwing, omdat het cluster een eigen certificaat gebruikt: klik op "Geavanceerd" en
-   dan "Doorgaan".
+2. Open the host from the `HOST/PORT` column in your browser, with `https://` in front of it. On CRC you
+   get a certificate warning, because the cluster uses its own certificate: click "Advanced" and then
+   "Proceed".
 
-Is de Route niet bereikbaar vanaf je computer (bij een extern gehost CRC kan dat), gebruik dan een
-port-forward. Laat dit venster open en ga naar http://localhost:8080:
+If the Route cannot be reached from your computer (possible with an externally hosted CRC), use a
+port-forward. Keep this window open and go to http://localhost:8080:
 
 ```bash
 oc port-forward -n clusterbusters deploy/upgrade-readiness-exporter 8080:8080
 ```
 
-De eerste minuut na een herstart staat er "De eerste scan loopt nog". De pagina heeft geen login:
-iedereen die de Route kan bereiken, ziet de bevindingen.
+For the first minute after a restart the page says "The first scan is still running". The page has no
+login: anyone who can reach the Route can see the findings.
 
-### Perses-dashboard (in de OpenShift-console)
+### Perses dashboard (in the OpenShift console)
 
-Het officiële dashboard, en de fallback als de pagina hierboven niet werkt. Open in de
-OpenShift-console **Observe → Dashboards (Perses)**, kies project `clusterbusters` en dashboard
+The official dashboard, and the fallback if the page above does not work. It is in English only. In the
+OpenShift console, open **Observe → Dashboards (Perses)**, choose project `clusterbusters` and dashboard
 **ClusterBusters: OpenShift Upgrade Readiness**.
 
-### Alerts en losse metrics
+### Alerts and individual metrics
 
-- Alerts: **Observe → Alerting** in de console. `UpgradeBlockersPresent` gaat af als het cluster
-  2 minuten niet klaar is, `UpgradeReadinessCheckFailing` als een check faalt,
-  `UpgradeReadinessScanStale` als er 10 minuten geen scan is afgerond, en
-  `UpgradeReadinessMetricsMissing` als er 10 minuten geen metrics binnenkomen.
-- Metrics: **Observe → Metrics**, bijvoorbeeld `upgrade_readiness_score` of
+- Alerts: **Observe → Alerting** in the console. `UpgradeBlockersPresent` fires when the cluster has not
+  been ready for 2 minutes, `UpgradeReadinessCheckFailing` when a check fails,
+  `UpgradeReadinessScanStale` when no scan has completed for 10 minutes, and
+  `UpgradeReadinessMetricsMissing` when no metrics have arrived for 10 minutes. The alert texts are in
+  Dutch.
+- Metrics: **Observe → Metrics**, for example `upgrade_readiness_score` or
   `upgrade_readiness_finding == 1`.
 
-## Inzetten op een cluster
+## Deploying to a cluster
 
-Het volledige stappenplan voor een leeg cluster staat in [`docs/cluster-opzetten.md`](docs/cluster-opzetten.md).
-Kort samengevat, met cluster-admin:
+The full procedure for an empty cluster is in [`docs/cluster-opzetten.md`](docs/cluster-opzetten.md)
+(in Dutch). In short, with cluster-admin:
 
-1. **Alleen op CRC:** zet de ingebouwde monitoring aan (CRC schakelt die standaard uit).
-2. **Installeer Argo CD** (OpenShift GitOps):
+1. **CRC only:** enable the built-in monitoring (CRC disables it by default).
+2. **Install Argo CD** (OpenShift GitOps):
 
    ```bash
    oc apply -f bootstrap/gitops-operator.yaml
    ```
 
-3. **Geef Argo CD zijn rechten en de Applications:**
+3. **Give Argo CD its permissions and the Applications:**
 
    ```bash
    oc apply -f argocd/
    ```
 
-   Argo CD rolt daarna `cluster/` (Cluster Observability Operator, Perses in de console, monitoring-config)
-   en `overlays/prod` (exporter, dashboard, alerts, Route) uit in namespace `clusterbusters`.
+   Argo CD then rolls out `cluster/` (Cluster Observability Operator, Perses in the console, monitoring
+   config) and `overlays/prod` (exporter, dashboard, alerts, Route) in namespace `clusterbusters`.
 
-4. **Bouw het image van de exporter** in het cluster en start hem:
+4. **Build the exporter image** in the cluster and start it:
 
    ```bash
    oc start-build upgrade-readiness-exporter -n clusterbusters --follow
@@ -126,7 +128,7 @@ Kort samengevat, met cluster-admin:
    oc rollout restart deployment/upgrade-readiness-exporter -n clusterbusters
    ```
 
-5. **Controleer** dat beide Applications op `Synced` en `Healthy` staan, en dat de exporter scant:
+5. **Check** that both Applications are `Synced` and `Healthy`, and that the exporter is scanning:
 
    ```bash
    oc get applications.argoproj.io -n openshift-gitops
@@ -136,16 +138,16 @@ Kort samengevat, met cluster-admin:
    oc logs -n clusterbusters deploy/upgrade-readiness-exporter --tail=5
    ```
 
-   Elke minuut hoort er een regel `scan klaar … score=…` te verschijnen.
+   A line `scan klaar … score=…` should appear every minute.
 
-### Een nieuwe versie uitrollen
+### Rolling out a new version
 
-Wijzig altijd via Git: Argo CD draait handmatige wijzigingen op het cluster terug (`selfHeal`).
+Always change things through Git: Argo CD reverts manual changes on the cluster (`selfHeal`).
 
-- **YAML** in `base/`, `overlays/` of `cluster/`: merge naar `main`, Argo CD rolt het binnen een paar
-  minuten uit.
-- **Go-code of de pagina** in `exporter/`: merge naar `main`, bouw daarna opnieuw en herstart. Er is
-  geen automatische build.
+- **YAML** in `base/`, `overlays/` or `cluster/`: merge to `main` and Argo CD rolls it out within a few
+  minutes.
+- **Go code or the page** in `exporter/`: merge to `main`, then rebuild and restart. There is no
+  automatic build.
 
   ```bash
   oc start-build upgrade-readiness-exporter -n clusterbusters --follow
@@ -155,42 +157,42 @@ Wijzig altijd via Git: Argo CD draait handmatige wijzigingen op het cluster teru
   oc rollout restart deployment/upgrade-readiness-exporter -n clusterbusters
   ```
 
-## Demo en testen
+## Demo and testing
 
-In [`testcases/`](testcases/README.md) staan bestanden die je met de hand toepast. Ze staan bewust
-buiten `base/`, anders draait Argo CD elke live fix terug.
+[`testcases/`](testcases/README.md) holds files you apply by hand. They are deliberately outside `base/`,
+because Argo CD would otherwise revert every live fix.
 
-- `demo-kapot.yaml`: het korte demo-scenario. Eén blocker en twee warnings; de score daalt met 35
-  punten en stijgt na de live fix met 25. Op `crc03` gaat dat van 70 naar 35 en dan naar 60: de
-  CRC-overrides en de verouderde DeploymentConfig-API kosten daar al 30 punten. Daardoor staat
-  `UpgradeBlockersPresent` daar al aan vóór de demo.
-- `testomgeving.yaml`: goede en kapotte onderdelen naast elkaar (workloads, PDB's, een losse pod,
-  een client van een verouderde API, vastgelopen Operator-updates).
-- `nep-clusteroperator.yaml` (optioneel, cluster-admin): een nep-ClusterOperator die zich Degraded
-  meldt, zonder het echte platform kapot te maken. Verwijder hem na afloop.
+- `demo-kapot.yaml`: the short demo scenario. One blocker and two warnings; the score drops by 35 points
+  and rises by 25 after the live fix. On `crc03` that goes from 70 to 35 and then to 60: the CRC
+  overrides and the deprecated DeploymentConfig API already cost 30 points there. As a result,
+  `UpgradeBlockersPresent` is already firing there before the demo.
+- `testomgeving.yaml`: good and broken parts side by side (workloads, PDBs, a standalone pod, a client
+  of a deprecated API, stuck Operator updates).
+- `nep-clusteroperator.yaml` (optional, cluster-admin): a fake ClusterOperator that reports Degraded,
+  without breaking the real platform. Remove it afterwards.
 
-Demo in vier stappen:
+Demo in four steps:
 
 ```bash
 oc apply -f https://raw.githubusercontent.com/JappertjeV/ClusterBusters/main/testcases/demo-kapot.yaml
 ```
 
-Wacht 1 à 2 minuten: het dashboard springt op rood, met per bevinding de fix. Fix daarna de blocker live:
+Wait 1 to 2 minutes: the dashboard turns red, with a fix for each finding. Then fix the blocker live:
 
 ```bash
 oc patch pdb demo-app -n clusterbusters-demo --type=merge -p "spec: {minAvailable: null, maxUnavailable: 1}"
 ```
 
-De blocker verdwijnt en de score stijgt. Ruim op:
+The blocker disappears and the score rises. Clean up:
 
 ```bash
 oc delete namespace clusterbusters-demo
 ```
 
-Draai de demo niet tegelijk met de testomgeving: met te veel bevindingen staat de score op 0 en zie je
-hem bij een fix niet stijgen.
+Do not run the demo at the same time as the test environment: with too many findings the score stays at
+0 and you will not see it rise after a fix.
 
-De Go-code test je lokaal, zonder cluster:
+Test the Go code locally, without a cluster:
 
 ```bash
 cd exporter && go test ./...
@@ -199,61 +201,62 @@ cd exporter && go test ./...
 ## Repository
 
 ```
-argocd/          Argo CD-Applications voor overlays/prod en cluster/, plus Argo's rechten op UIPlugins
-base/            Kustomize-base: exporter (build, deployment, rechten, alerts, Route), Perses-dashboard en -datasource
-overlays/prod/   namespace clusterbusters en de labels
-cluster/         clusterbreed: Cluster Observability Operator, UIPlugin voor Perses, monitoring-config
-bootstrap/       OpenShift GitOps Operator (met de hand: Argo CD kan zichzelf niet installeren)
-exporter/        de Go-exporter en de KPN-pagina (zie exporter/README.md)
-testcases/       demo en testomgeving (met de hand toepassen)
-docs/            cluster opzetten
-CLAUDE.md        projectcontext voor Claude Code
+argocd/          Argo CD Applications for overlays/prod and cluster/, plus Argo's permissions on UIPlugins
+base/            Kustomize base: exporter (build, deployment, permissions, alerts, Route), Perses dashboard and datasource
+overlays/prod/   namespace clusterbusters and the labels
+cluster/         cluster-wide: Cluster Observability Operator, UIPlugin for Perses, monitoring config
+bootstrap/       OpenShift GitOps Operator (by hand: Argo CD cannot install itself)
+exporter/        the Go exporter and the KPN page (see exporter/README.md)
+testcases/       demo and test environment (apply by hand)
+docs/            cluster setup
+CLAUDE.md        project context for Claude Code
 ```
 
-## Gebruikte tools en technologie
+## Tools and technology
 
-| Onderdeel | Tool |
+| Part | Tool |
 |---|---|
-| Platform | OpenShift (CRC, single-node, extern gehost) |
-| Uitrol | Argo CD via OpenShift GitOps, Kustomize |
-| Exporter | Go, met `client-go` (dynamic client) en `prometheus/client_golang` |
-| Image | Red Hat UBI (go-toolset om te bouwen, ubi-micro om te draaien), gebouwd met een OpenShift BuildConfig |
-| Metrics en alerts | OpenShift user workload monitoring (Prometheus), Thanos Querier, PrometheusRule, Alertmanager |
-| Dashboard | Perses via de Cluster Observability Operator (UIPlugin in de console) |
-| KPN-pagina | HTML, CSS en JavaScript zonder framework, ingebouwd in de exporter met `go:embed`; kleuren en lettertype uit de openbare KPN-design-tokens |
-| Controle | `go test`, `kustomize build`, `kubeconform`, `percli lint` |
-| Werkwijze | GitHub met pull requests, Claude Code als programmeerhulp |
+| Platform | OpenShift (CRC, single-node, externally hosted) |
+| Rollout | Argo CD through OpenShift GitOps, Kustomize |
+| Exporter | Go, with `client-go` (dynamic client) and `prometheus/client_golang` |
+| Image | Red Hat UBI (go-toolset to build, ubi-micro to run), built with an OpenShift BuildConfig |
+| Metrics and alerts | OpenShift user workload monitoring (Prometheus), Thanos Querier, PrometheusRule, Alertmanager |
+| Dashboard | Perses through the Cluster Observability Operator (UIPlugin in the console) |
+| KPN page | HTML, CSS and JavaScript without a framework, embedded in the exporter with `go:embed`; colours and typeface from the public KPN design tokens |
+| Verification | `go test`, `kustomize build`, `kubeconform`, `percli lint` |
+| Way of working | GitHub with pull requests, Claude Code as a programming aid |
 
-## Hoe we het gebouwd hebben
+## How we built it
 
-1. **Argo CD opgezet** (PR #1 t/m #4): een Application die `overlays/prod` uitrolt naar namespace
-   `clusterbusters`, eerst getest met een testapp.
-2. **Monitoring en eerste dashboard** (PR #5 t/m #7): user workload monitoring aangezet, een
-   Perses-dashboard op de platform-metrics, en de Perses-datasource met TLS naar de Thanos Querier.
-3. **Keuze voor de ingebouwde monitoring:** een losse MonitoringStack deed dubbel werk met de
-   platform-Prometheus en is verwijderd.
-4. **De Go-exporter** (PR #8 en #9): zeven checks, de metrics, BuildConfig, Deployment, rechten en
-   alerts. Het image wordt in het cluster gebouwd.
-5. **Dashboard op de exporter en de demo** (PR #10): de panelen tonen de oordelen van de exporter,
-   met de demo in `testcases/`.
-6. **Verouderde API's** (PR #11): op CRC was `APIRequestCount` leeg, dus de check leest nu ook de
-   platform-metric via Thanos.
-7. **Alles via Git** (PR #13): ook de Operators en `cluster/` lopen via Argo CD; alleen het
-   installeren van Argo CD zelf blijft met de hand.
-8. **Huisstijl en uitbreiding** (PR #12, #14): het Perses-dashboard kreeg de KPN-kleuren, de exporter
-   ziet nu ook vastgelopen Operator-updates, en er kwam een testomgeving met goede en kapotte onderdelen.
-9. **Eigen KPN-pagina** (PR #15): Perses kan het KPN-ontwerp maar deels weergeven, dus de exporter
-   serveert het ontwerp zelf, met live data.
-10. **Perses opgeruimd** (PR #16): Perses blijft de fallback, zonder de onderdelen die in de console
-    niet goed werkten.
+1. **Set up Argo CD** (PR #1 to #4): an Application that rolls out `overlays/prod` to namespace
+   `clusterbusters`, first tested with a test app.
+2. **Monitoring and first dashboard** (PR #5 to #7): enabled user workload monitoring, a Perses dashboard
+   on the platform metrics, and the Perses datasource with TLS to the Thanos Querier.
+3. **Choice for the built-in monitoring:** a separate MonitoringStack duplicated the platform Prometheus
+   and was removed.
+4. **The Go exporter** (PR #8 and #9): seven checks, the metrics, BuildConfig, Deployment, permissions and
+   alerts. The image is built in the cluster.
+5. **Dashboard on the exporter and the demo** (PR #10): the panels show the exporter's verdicts, with the
+   demo in `testcases/`.
+6. **Deprecated APIs** (PR #11): `APIRequestCount` was empty on CRC, so the check now also reads the
+   platform metric through Thanos.
+7. **Everything through Git** (PR #13): the Operators and `cluster/` also go through Argo CD; only
+   installing Argo CD itself remains manual.
+8. **House style and expansion** (PR #12, #14): the Perses dashboard got the KPN colours, the exporter now
+   also sees stuck Operator updates, and a test environment with good and broken parts was added.
+9. **Own KPN page** (PR #15): Perses can only partly render the KPN design, so the exporter serves the
+   design itself, with live data.
+10. **Perses cleaned up** (PR #16): Perses remains the fallback, without the parts that did not work well
+    in the console.
 
-## Bekende beperkingen
+## Known limitations
 
-- CRC is single-node en wordt niet echt geüpgraded: we beoordelen de *readiness*, er wordt niets
-  geüpgraded.
-- De KPN-pagina heeft geen login.
-- De scoregrafiek op de KPN-pagina onthoudt alleen de laatste 180 scans in het geheugen en begint
-  opnieuw na een herstart. De volledige historie staat in Prometheus en in Perses.
-- Na nieuwe Go-code moet je zelf `oc start-build` draaien: er is geen webhook.
-- Perses sorteert de tabel met fixes alfabetisch op ernst (blocker, info, warning); de KPN-pagina
-  sorteert blockers bovenaan.
+- CRC is single-node and is not really upgraded: we assess the *readiness*, nothing gets upgraded.
+- The KPN page has no login.
+- The score chart on the KPN page only keeps the last 180 scans in memory and starts over after a
+  restart. The full history is in Prometheus and Perses.
+- After new Go code you must run `oc start-build` yourself: there is no webhook.
+- Perses sorts the table of fixes alphabetically by severity (blocker, info, warning); the KPN page puts
+  blockers at the top.
+- Text that comes from the cluster itself, such as the message of a Degraded condition, stays in English
+  when the KPN page is set to Dutch.

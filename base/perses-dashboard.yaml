@@ -6,7 +6,7 @@ spec:
   config:
     display:
       name: "ClusterBusters: OpenShift Upgrade Readiness"
-      description: "Is dit cluster klaar voor de volgende upgrade? Rood eerst oplossen, oranje nakijken, groen is in orde. Uitgebreide weergave: de pagina van de exporter (oc get route upgrade-readiness -n clusterbusters)."
+      description: "Is this cluster ready for the next upgrade? Fix red first, review orange, green is fine. Extended view: the exporter page (oc get route upgrade-readiness -n clusterbusters)."
     duration: 1h
     # Vast kleurenschema: groen #00c300/#00a800, rood #c01313, oranje #ff8811/#e3660e.
     # Op #c01313 kiest de StatChart witte tekst; op lichter rood wordt die zwart en slecht leesbaar.
@@ -16,8 +16,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Readiness-score"
-            description: "100 min 25 per blocker en 5 per warning, minimaal 0."
+            name: "Readiness score"
+            description: "100 minus 25 per blocker and 5 per warning, minimum 0."
           plugin:
             kind: GaugeChart
             spec:
@@ -48,8 +48,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Klaar voor upgrade?"
-            description: "Ja als er geen blockers zijn en alle checks gelukt zijn."
+            name: "Ready for upgrade?"
+            description: "Yes if there are no blockers and all checks succeeded."
           plugin:
             kind: StatChart
             spec:
@@ -65,12 +65,12 @@ spec:
                   spec:
                     value: "0"
                     result:
-                      value: "Nog niet"
+                      value: "Not yet"
                 - kind: Value
                   spec:
                     value: "1"
                     result:
-                      value: "Ja"
+                      value: "Yes"
           queries:
             - kind: TimeSeriesQuery
               spec:
@@ -84,7 +84,7 @@ spec:
         spec:
           display:
             name: "Blockers"
-            description: "Moeten opgelost zijn voordat je upgradet."
+            description: "Must be resolved before you upgrade."
           plugin:
             kind: StatChart
             spec:
@@ -108,7 +108,7 @@ spec:
         spec:
           display:
             name: "Warnings"
-            description: "Bekijk deze voordat je upgradet; ze houden een upgrade niet per se tegen."
+            description: "Review these before you upgrade; they do not necessarily stop an upgrade."
           plugin:
             kind: StatChart
             spec:
@@ -131,8 +131,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Laatste scan"
-            description: "Seconden sinds de laatste afgeronde scan. Hoog betekent dat de cijfers hierboven verouderd zijn."
+            name: "Last scan"
+            description: "Seconds since the last completed scan. A high value means the figures above are out of date."
           plugin:
             kind: StatChart
             spec:
@@ -157,8 +157,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Versie"
-            description: "Huidige clusterversie en de doelversie waarop de checks beoordeeld zijn. Het doel schuift vanzelf mee met de clusterversie, tenzij TARGET_VERSION is gezet."
+            name: "Version"
+            description: "Current cluster version and the target version the checks are assessed against. The target follows the cluster version automatically, unless TARGET_VERSION is set."
           plugin:
             kind: Table
             spec:
@@ -166,9 +166,9 @@ spec:
               defaultColumnHidden: true
               columnSettings:
                 - name: current_version
-                  header: Nu
+                  header: Current
                 - name: target_version
-                  header: Doel
+                  header: Target
           queries:
             - kind: TimeSeriesQuery
               spec:
@@ -181,8 +181,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Wat moet er gefixt worden"
-            description: "Alle bevindingen van de laatste scan, met per bevinding de oplossing."
+            name: "What needs fixing"
+            description: "All findings from the last scan, each with its fix."
           plugin:
             kind: Table
             spec:
@@ -193,7 +193,7 @@ spec:
               enableFiltering: true
               columnSettings:
                 - name: severity
-                  header: Ernst
+                  header: Severity
                   width: 100
                   # Alfabetisch staat blocker bovenaan.
                   sort: asc
@@ -220,15 +220,15 @@ spec:
                       backgroundColor: "#e5f0fd"
                       textColor: "#13417e"
                 - name: category
-                  header: Categorie
+                  header: Category
                   width: 130
                 - name: resource
                   header: Resource
                   width: 260
                 - name: title
-                  header: Probleem
+                  header: Problem
                 - name: fix
-                  header: Oplossing
+                  header: Fix
           queries:
             - kind: TimeSeriesQuery
               spec:
@@ -241,8 +241,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Score in de tijd"
-            description: "Stijgt zodra bevindingen zijn opgelost. Stippellijnen: de drempels van de score-teller."
+            name: "Score over time"
+            description: "Rises as findings are resolved. Dotted lines: the thresholds of the score gauge."
           plugin:
             kind: TimeSeriesChart
             spec:
@@ -261,10 +261,10 @@ spec:
                 steps:
                   - value: 50
                     color: "#ff8811"
-                    name: "Oranje vanaf 50"
+                    name: "Orange from 50"
                   - value: 100
                     color: "#00a800"
-                    name: "Groen op 100"
+                    name: "Green at 100"
           queries:
             - kind: TimeSeriesQuery
               spec:
@@ -279,8 +279,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Blockers en warnings per categorie"
-            description: "Telt alleen blockers en warnings, geen info."
+            name: "Blockers and warnings per category"
+            description: "Counts blockers and warnings only, not info."
           plugin:
             kind: BarChart
             spec:
@@ -299,8 +299,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Status van de checks"
-            description: "Een falende check betekent dat de exporter dit onderdeel niet heeft kunnen beoordelen, meestal door ontbrekende rechten."
+            name: "Check status"
+            description: "A failing check means the exporter could not assess this part, usually because of missing permissions."
           plugin:
             kind: Table
             spec:
@@ -325,7 +325,7 @@ spec:
                         kind: Value
                         spec:
                           value: "0"
-                      text: Fout
+                      text: Failed
                       backgroundColor: "#c01313"
                       textColor: "#ffffff"
           queries:
@@ -341,8 +341,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Blokkerende PDB's"
-            description: "Aantal PDB's met 0 toegestane evicties. Blokkeert node-drains tijdens upgrades."
+            name: "Blocking PDBs"
+            description: "Number of PDBs that allow 0 evictions. Blocks node drains during upgrades."
           plugin:
             kind: StatChart
             spec:
@@ -365,8 +365,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Nodes niet Ready"
-            description: "Aantal cluster-nodes waarvan de Ready-condition niet 'true' is."
+            name: "Nodes not Ready"
+            description: "Number of cluster nodes whose Ready condition is not 'true'."
           plugin:
             kind: StatChart
             spec:
@@ -389,8 +389,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Ongezonde Operators"
-            description: "Aantal Cluster Operators die down, degraded of unavailable zijn."
+            name: "Unhealthy Operators"
+            description: "Number of Cluster Operators that are down, degraded or unavailable."
           plugin:
             kind: StatChart
             spec:
@@ -415,8 +415,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Verouderde API's in gebruik"
-            description: "Aantal API-versies dat daadwerkelijk een geplande verwijderdatum heeft."
+            name: "Deprecated APIs in use"
+            description: "Number of API versions that actually have a planned removal release."
           plugin:
             kind: StatChart
             spec:
@@ -441,8 +441,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "PDB's met 0 disruptions"
-            description: "PDB's per namespace die drains verhinderen. Leeg is goed."
+            name: "PDBs with 0 disruptions"
+            description: "PDBs per namespace that prevent drains. Empty is good."
           plugin:
             kind: Table
             spec:
@@ -466,8 +466,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Nodes niet Ready"
-            description: "Nodes die niet in Ready-status verkeren. Leeg is goed."
+            name: "Nodes not Ready"
+            description: "Nodes that are not in Ready status. Empty is good."
           plugin:
             kind: Table
             spec:
@@ -489,8 +489,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Gedegradeerde Operators"
-            description: "Gedegradeerde OpenShift Cluster Operators. Leeg is goed."
+            name: "Degraded Operators"
+            description: "Degraded OpenShift Cluster Operators. Empty is good."
           plugin:
             kind: Table
             spec:
@@ -512,8 +512,8 @@ spec:
         kind: Panel
         spec:
           display:
-            name: "Verouderde API's in gebruik"
-            description: "Aangeroepen deprecated API-versies met een geplande verwijderdatum."
+            name: "Deprecated APIs in use"
+            description: "Called deprecated API versions with a planned removal release."
           plugin:
             kind: Table
             spec:
@@ -521,7 +521,7 @@ spec:
               defaultColumnHidden: true
               columnSettings:
                 - name: group
-                  header: Groep
+                  header: Group
                   cellSettings:
                     # De kern-API's hebben geen group-label.
                     - condition:
@@ -530,11 +530,11 @@ spec:
                           value: empty
                       text: core
                 - name: version
-                  header: Versie
+                  header: Version
                 - name: resource
                   header: Resource
                 - name: removed_release
-                  header: Verdwijnt in
+                  header: Removed in
           queries:
             - kind: TimeSeriesQuery
               spec:
@@ -542,13 +542,13 @@ spec:
                   kind: PrometheusTimeSeriesQuery
                   spec:
                     query: count by (group, version, resource, removed_release) (apiserver_requested_deprecated_apis{removed_release=~".+"})
-                    seriesNameFormat: "{{group}}/{{version}} {{resource}} (verwijderd in: {{removed_release}})"
+                    seriesNameFormat: "{{group}}/{{version}} {{resource}} (removed in: {{removed_release}})"
 
     layouts:
       - kind: Grid
         spec:
           display:
-            title: "Overzicht"
+            title: "Overview"
             collapse:
               open: true
           items:
@@ -592,7 +592,7 @@ spec:
       - kind: Grid
         spec:
           display:
-            title: "Wat moet er gefixt worden"
+            title: "What needs fixing"
             collapse:
               open: true
           items:
@@ -605,7 +605,7 @@ spec:
       - kind: Grid
         spec:
           display:
-            title: "Score en checks"
+            title: "Score and checks"
             collapse:
               open: true
           items:
@@ -633,7 +633,7 @@ spec:
           # mee die de exporter overslaat. Verschillen met de tellers hierboven kunnen dus kloppen.
           # Ingeklapt, zodat de demo begint bij de oordelen van de exporter.
           display:
-            title: "Ruwe platform-metrics"
+            title: "Raw platform metrics"
             collapse:
               open: false
           items:

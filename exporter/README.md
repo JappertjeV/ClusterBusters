@@ -9,7 +9,7 @@ alerts staan in `base/exporter-*.yaml`.
 | `main.go` | config, HTTP-server (`/metrics`, `/healthz`), scan-loop |
 | `scan.go` | lijst van checks, score en ready |
 | `thanos.go` | queries naar Thanos Querier |
-| `checks.go` | de checks zelf, met de Nederlandse titel- en fix-teksten |
+| `checks.go` | de checks zelf, met de titel- en fix-teksten in het Engels en Nederlands |
 | `collector.go` | zet het laatste scanresultaat om in metrics |
 | `version.go` | doelversie bepalen, Kubernetes- naar OpenShift-versie |
 | `web.go`, `web/index.html` | de KPN-dashboardpagina op `/` en de live data op `/api/status` |
@@ -113,7 +113,9 @@ up{namespace="clusterbusters", service="upgrade-readiness-exporter"}
 
 ## Dashboard
 
-`base/perses-dashboard.yaml` toont alle metrics hierboven in de secties "Overzicht", "Wat moet er gefixt worden" en "Score en checks". De tabel "Wat moet er gefixt worden" komt uit `upgrade_readiness_finding == 1`.
+`base/perses-dashboard.yaml` toont alle metrics hierboven in de secties "Overview", "What needs fixing" en "Score and checks". De tabel "What needs fixing" komt uit `upgrade_readiness_finding == 1`.
+
+De labels `title` en `fix` zijn Engels. De KPN-pagina is standaard Engels en haalt voor de NL-knop de Nederlandse tekst uit `/api/status`.
 
 ## Demo
 
